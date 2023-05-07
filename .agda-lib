@@ -1,0 +1,6 @@
+name: safe-by-construction-refactorings
+depend: standard-library
+include:
+  ./src/
+  ./src/Language
+  ./src/Verification
