@@ -1,6 +1,6 @@
 module Typesystem where
 
-open import Agda.Builtin.Int renaming (Int to ℤ)
+open import Data.Integer using (ℤ) -- renaming (Int to ℤ)
 open import Data.Nat using (ℕ; zero; suc; _<_; _≤?_; z≤n; s≤s)
 open import Relation.Nullary.Decidable using (True; toWitness)
 
@@ -24,6 +24,21 @@ infixl 7 _·_
 infix  9 S_
 infix  9 #_
 
+
+data Pattern : Set where
+    varPattern : Pattern
+    
+    IntPattern : Pattern
+    
+    JustPattern : Pattern
+    NothingPattern : Pattern
+
+    ::Pattern : Pattern → Pattern → Pattern 
+    []Pattern : Pattern
+
+    LeftPattern : Pattern → Pattern
+    RightPattern : Pattern → Pattern
+
 data Type : Set where
     -- Base types
     IntTy : Type
@@ -31,7 +46,9 @@ data Type : Set where
     _⇒_ : Type → Type → Type
     Maybe_ : Type → Type
     List_ : Type → Type
-    Either_,_ : Type → Type → Type  
+    Either : Type → Type → Type  
+    
+    PatternTy : Pattern → Type
 
 data Context : Set where
     ∅ : Context
@@ -84,11 +101,11 @@ data _⊢_ : Context → Type → Set where
         → Γ ⊢ IntTy
         → Γ ⊢ IntTy
 
+
     -- Maybe
-    -- Uncertain about the Nothing constructor 
     Nothing : ∀ {Γ A}
         → Γ ⊢ Maybe A
-    Just_ : ∀ {Γ A}
+    Just : ∀ {Γ A}
         → Γ ⊢ A
         → Γ ⊢ Maybe A
 
@@ -107,50 +124,57 @@ data _⊢_ : Context → Type → Set where
         → Γ ⊢ List A
         
     -- Either
-    Left_ : ∀ {Γ A B}
+    Left : ∀ {Γ A B}
         → Γ ⊢ A
-        → Γ ⊢ Either A , B
-    Right_ : ∀ {Γ A B}
-        → Γ ⊢ B
-        → Γ ⊢ Either A , B
+        → Γ ⊢ Either A B
+    Right : ∀ {Γ A B}
+        → Γ ⊢ A
+        → Γ ⊢ Either A B
 
     -- For now only support pattern matching on list/either/maybe
-    
-    caseM_of_to_or_to_ : ∀ {Γ A B }    
+    -- Consider extending pattern matching to be on a type similar to an association list
+    caseM_of_to_or_to_ : ∀ {Γ A}    
         -- thing ur matching on
         → Γ ⊢ Maybe A
         -- case Nothing
-        → Γ ⊢ Maybe A
-        → Γ ⊢ B
+        → Γ ⊢ PatternTy NothingPattern
+        → Γ ⊢ A
         -- case Just x
-        → Γ ⊢ Maybe A
-        → Γ , A ⊢ B
+        → Γ ⊢ PatternTy JustPattern
+        → Γ , A ⊢ A
         -- Result
-        → Γ ⊢ B
-    
-    caseL_of_to_or_to_ : ∀ {Γ A B }    
+        → Γ ⊢ A
+
+    -- Pattern Terms
+    JustP :  ∀ {Γ}
+        → Γ ⊢ PatternTy JustPattern  
+    NothingP : ∀ {Γ}
+        → Γ ⊢ PatternTy NothingPattern
+    {-
+    caseL_of_to_or_to_ : ∀ {Γ A}    
         -- thing ur matching on
         → Γ ⊢ List A
         -- case []
         → Γ ⊢ List A
-        → Γ ⊢ B
+        → Γ ⊢ A
         -- case x :: xs
         → Γ ⊢ List A
-        → Γ , A ⊢ B
+        → Γ , A ⊢ A
         -- Result
-        → Γ ⊢ B
+        → Γ ⊢ A
     
-    caseE_of_to_or_to_ : ∀ {Γ A B C }    
+    caseE_of_to_or_to_ : ∀ {Γ C A B}    
         -- thing ur matching on
-        → Γ ⊢ Either A , B
+        → Γ ⊢ Either A B
         -- case Left
-        → Γ ⊢ Either A , B
+        → Γ ⊢ Either A B 
         → Γ , A ⊢ C
         -- case Right
-        → Γ ⊢ Either A , B
+        → Γ ⊢ Either A B
         → Γ , B ⊢ C
         -- Result
         → Γ ⊢ C
+    -}
 
 length : Context → ℕ
 length ∅        =  zero
@@ -169,4 +193,4 @@ count {Γ , _} {(suc n)} (s≤s p)    =  S (count p)
   → {n∈Γ : True (suc n ≤? length Γ)}
     --------------------------------
   → Γ ⊢ lookup (toWitness n∈Γ)
-#_ n {n∈Γ}  =  var count (toWitness n∈Γ)
+#_ n {n∈Γ}  =  var count (toWitness n∈Γ)   
