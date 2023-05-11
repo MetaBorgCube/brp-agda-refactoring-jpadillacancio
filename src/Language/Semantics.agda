@@ -33,6 +33,13 @@ data Value : Set where
 
 Env Γ =  {t : Type} → ∀ (x : Γ ∋ t ) → Value
 
+∅' : Env ∅
+∅' ()
+
+_,'_ : ∀ {Γ ty} → Env Γ → Value → Env (Γ , ty)
+(γ ,' c) Z = c
+(γ ,' c) (S x) = γ x
+
 infix 3 _⊢e_↓_
 
 data _⊢e_↓_ : ∀ {Γ : Context} {ty : Type} → Env Γ → (Γ ⊢ ty ) → Value → Set where
@@ -43,12 +50,13 @@ data _⊢e_↓_ : ∀ {Γ : Context} {ty : Type} → Env Γ → (Γ ⊢ ty ) →
     ↓ƛ : ∀ {Γ} {γ : Env Γ} {argTy retTy : Type} {body : Γ , argTy ⊢ retTy }
         → γ ⊢e ƛ  body ↓ ClosV γ body
 
-    ↓· : ∀ {Γ Γ-clos} {γ : Env Γ} {γ-clos : Env Γ-clos} {argTy retTy : Type} {arg : Γ ⊢ argTy} {γ-app : Env (Γ-clos , argTy)}  {body : Γ-clos , argTy ⊢ retTy } {fun : Γ ⊢ argTy ⇒ retTy} {res}
+    ↓· : ∀ {Γ Γ-clos argVal} {γ : Env Γ} {γ-clos : Env Γ-clos} {argTy retTy : Type} {arg : Γ ⊢ argTy}  {body : Γ-clos , argTy ⊢ retTy } {fun : Γ ⊢ argTy ⇒ retTy} {res}
         -- evaluate to function
         → γ ⊢e fun ↓ ClosV γ-clos body
         -- evalue body under extended closure environment
-        -- Is this wrong? Should I be constructing the environment? Maybe create a context list-like data structure?
-        → γ-app ⊢e body ↓ res
+        → γ ⊢e arg ↓ argVal
+        -- evaluate body, extended by argument
+        → γ-clos ,' argVal ⊢e body ↓ res
         → γ ⊢e fun · arg ↓ res
 
     -- Int and Int operations
@@ -87,7 +95,7 @@ data _⊢e_↓_ : ∀ {Γ : Context} {ty : Type} → Env Γ → (Γ ⊢ ty ) →
     -- List
     ↓[] : ∀ {Γ A} {γ : Env Γ}
         → γ ⊢e [] {_}  {A} ↓ NilV
-    ↓_::_ : ∀ {Γ headV tailV} {γ : Env Γ} {head : Γ ⊢ IntTy} {tail : Γ ⊢ List IntTy}
+    ↓:: : ∀ {Γ headV tailV} {γ : Env Γ} {head : Γ ⊢ IntTy} {tail : Γ ⊢ List IntTy}
         -- get first type
         → γ ⊢e head ↓ headV
         -- ensure second arg is tail with right type
@@ -115,16 +123,16 @@ data _⊢e_↓_ : ∀ {Γ : Context} {ty : Type} → Env Γ → (Γ ⊢ ty ) →
     -- For now only support pattern matching on list/either/maybe
 
     -- Only checking if term is a Just, not checking if it matches the value (if given)  
-    ↓caseMJ : ∀ {Γ val justClauseRes A} {γ : Env Γ } {γ-j : Env (Γ , A) } {matchOn : Γ ⊢ Maybe A} {justClause : Γ , A ⊢ A} {notClause : Γ ⊢ A}
+    ↓caseMJ : ∀ {Γ val justClauseRes A} {γ : Env Γ } {matchOn : Γ ⊢ Maybe A} {justClause : Γ , A ⊢ A} {notClause : Γ ⊢ A}
         -- Check if term being matched on is a Just
         → γ ⊢e matchOn ↓ JustV val
         -- Get result of evaluating Just clause
-        → γ-j ⊢e justClause ↓ justClauseRes
+        → γ ,' val ⊢e justClause ↓ justClauseRes
         → γ ⊢e caseM matchOn of 
             NothingP to notClause
             or
             JustP to justClause ↓ justClauseRes 
-    ↓caseMN : ∀ {Γ notClauseRes A} {γ : Env Γ } {γ-j : Env (Γ , A) } {matchOn : Γ ⊢ Maybe A} {justClause : Γ , A ⊢ A} {notClause : Γ ⊢ A}
+    ↓caseMN : ∀ {Γ notClauseRes A} {γ : Env Γ } {matchOn : Γ ⊢ Maybe A} {justClause : Γ , A ⊢ A} {notClause : Γ ⊢ A}
         -- Check if term being matched on is a Just
         → γ ⊢e matchOn ↓ NothingV
         -- Get result of evaluating Just clause
@@ -132,8 +140,26 @@ data _⊢e_↓_ : ∀ {Γ : Context} {ty : Type} → Env Γ → (Γ ⊢ ty ) →
         → γ ⊢e caseM matchOn of 
             NothingP to notClause
             or
-            JustP to justClause ↓ notClauseRes 
+            JustP to justClause ↓ notClauseRes
     
+    ↓caseL:: : ∀ {Γ hVal tVal ::ClauseRes A} {γ : Env Γ } {matchOn : Γ ⊢ List A} {::Clause : Γ , A , List A ⊢ A} {[]Clause : Γ ⊢ A}
+        -- Check if term being matched on is a (x::xs)
+        → γ ⊢e matchOn ↓ ConsV hVal tVal
+        -- Get result of evaluating :: clause
+        → (γ ,' hVal) ,' tVal ⊢e ::Clause ↓ ::ClauseRes
+        → γ ⊢e caseL matchOn of 
+            []P to []Clause
+            or
+            ::P to ::Clause ↓ ::ClauseRes
+    ↓caseL[] : ∀ {Γ hVal tVal []ClauseRes A} {γ : Env Γ } {matchOn : Γ ⊢ List A} {::Clause : Γ , A , List A ⊢ A} {[]Clause : Γ ⊢ A}
+        -- Check if term being matched on is a (x::xs)
+        → γ ⊢e matchOn ↓ ConsV hVal tVal
+        -- Get result of evaluating :: clause
+        → γ ⊢e []Clause ↓ []ClauseRes
+        → γ ⊢e caseL matchOn of 
+            []P to []Clause
+            or
+            ::P to ::Clause ↓ []ClauseRes
     {-
     
     caseL_of_to_or_to_ : ∀ {Γ A B }    

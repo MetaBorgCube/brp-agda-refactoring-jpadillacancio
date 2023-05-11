@@ -33,11 +33,11 @@ data Pattern : Set where
     JustPattern : Pattern
     NothingPattern : Pattern
 
-    ::Pattern : Pattern → Pattern → Pattern 
+    ::Pattern : Pattern 
     []Pattern : Pattern
 
-    LeftPattern : Pattern → Pattern
-    RightPattern : Pattern → Pattern
+    LeftPattern : Pattern
+    RightPattern : Pattern
 
 data Type : Set where
     -- Base types
@@ -145,23 +145,29 @@ data _⊢_ : Context → Type → Set where
         -- Result
         → Γ ⊢ A
 
+    caseL_of_to_or_to_ : ∀ {Γ A}    
+        -- thing ur matching on
+        → Γ ⊢ List A
+        -- case []
+        → Γ ⊢ PatternTy []Pattern
+        → Γ ⊢ A
+        -- case x :: xs
+        → Γ ⊢ PatternTy ::Pattern
+        → Γ , A , List A ⊢ A
+        -- Result
+        → Γ ⊢ A
+
     -- Pattern Terms
     JustP :  ∀ {Γ}
         → Γ ⊢ PatternTy JustPattern  
     NothingP : ∀ {Γ}
         → Γ ⊢ PatternTy NothingPattern
+    ::P : ∀ {Γ}
+        → Γ ⊢ PatternTy ::Pattern
+    []P : ∀ {Γ}
+        → Γ ⊢ PatternTy []Pattern 
     {-
-    caseL_of_to_or_to_ : ∀ {Γ A}    
-        -- thing ur matching on
-        → Γ ⊢ List A
-        -- case []
-        → Γ ⊢ List A
-        → Γ ⊢ A
-        -- case x :: xs
-        → Γ ⊢ List A
-        → Γ , A ⊢ A
-        -- Result
-        → Γ ⊢ A
+    
     
     caseE_of_to_or_to_ : ∀ {Γ C A B}    
         -- thing ur matching on
