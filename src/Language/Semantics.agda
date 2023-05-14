@@ -24,7 +24,7 @@ data Value : Set where
     NilV : Value
     ConsV : Value → Value → Value
 
-    -- Either
+    -- EitherTy
     LeftV : Value → Value
     RightV : Value → Value
 
@@ -102,7 +102,7 @@ data _⊢e_↓_ : ∀ {Γ : Context} {ty : Type} → Env Γ → (Γ ⊢ ty ) →
         → γ ⊢e tail ↓ tailV
         → γ ⊢e head :: tail ↓ ConsV headV tailV 
     
-    
+    {-
     ↓headI : ∀ {Γ headV tailV} {γ : Env Γ } {list : Γ ⊢ List IntTy}
         -- evaluate to a list
         → γ ⊢e list ↓ ConsV headV tailV
@@ -111,8 +111,9 @@ data _⊢e_↓_ : ∀ {Γ : Context} {ty : Type} → Env Γ → (Γ ⊢ ty ) →
         -- evaluate to a list
         → γ ⊢e list ↓ ConsV headV tailV
         → γ ⊢e tail list ↓ tailV
-        
-    -- Either
+    -}
+      
+    -- EitherTy
     ↓Left : ∀ {Γ val A B } {γ : Env Γ } {x : Γ ⊢ A}
         → γ ⊢e x ↓ val
         → γ ⊢e (Left {_} {_} {B} x) ↓ LeftV val
@@ -120,7 +121,7 @@ data _⊢e_↓_ : ∀ {Γ : Context} {ty : Type} → Env Γ → (Γ ⊢ ty ) →
         → γ ⊢e x ↓ val
         → γ ⊢e (Right {_} {_} {A} x) ↓ RightV val
     
-    -- For now only support pattern matching on list/either/maybe
+    -- For now only support pattern matching on list/EitherTy/maybe
 
     -- Only checking if term is a Just, not checking if it matches the value (if given)  
     ↓caseMJ : ∀ {Γ val justClauseRes A} {γ : Env Γ } {matchOn : Γ ⊢ Maybe A} {justClause : Γ , A ⊢ A} {notClause : Γ ⊢ A}
@@ -176,12 +177,12 @@ data _⊢e_↓_ : ∀ {Γ : Context} {ty : Type} → Env Γ → (Γ ⊢ ty ) →
     
     caseE_of_to_or_to_ : ∀ {Γ A B C }    
         -- thing ur matching on
-        → Γ ⊢ Either A , B
+        → Γ ⊢ EitherTy A , B
         -- case Left
-        → Γ ⊢ Either A , B
+        → Γ ⊢ EitherTy A , B
         → Γ , A ⊢ C
         -- case Right
-        → Γ ⊢ Either A , B
+        → Γ ⊢ EitherTy A , B
         → Γ , B ⊢ C
         -- Result
         → Γ ⊢ C

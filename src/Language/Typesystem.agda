@@ -46,7 +46,7 @@ data Type : Set where
     _⇒_ : Type → Type → Type
     Maybe_ : Type → Type
     List_ : Type → Type
-    Either : Type → Type → Type  
+    EitherTy : Type → Type → Type  
     
     PatternTy : Pattern → Type
 
@@ -116,22 +116,24 @@ data _⊢_ : Context → Type → Set where
         → Γ ⊢ A
         → Γ ⊢ List A
         → Γ ⊢ List A
+    {-
     head : ∀ {Γ A}
         → Γ ⊢ List A
         → Γ ⊢ A
     tail : ∀ {Γ A}
         → Γ ⊢ List A
         → Γ ⊢ List A
-        
-    -- Either
+    -}
+      
+    -- EitherTy
     Left : ∀ {Γ A B}
         → Γ ⊢ A
-        → Γ ⊢ Either A B
+        → Γ ⊢ EitherTy A B
     Right : ∀ {Γ A B}
         → Γ ⊢ A
-        → Γ ⊢ Either A B
+        → Γ ⊢ EitherTy A B
 
-    -- For now only support pattern matching on list/either/maybe
+    -- For now only support pattern matching on list/EitherTy/maybe
     -- Consider extending pattern matching to be on a type similar to an association list
     caseM_of_to_or_to_ : ∀ {Γ A}    
         -- thing ur matching on
@@ -171,12 +173,12 @@ data _⊢_ : Context → Type → Set where
     
     caseE_of_to_or_to_ : ∀ {Γ C A B}    
         -- thing ur matching on
-        → Γ ⊢ Either A B
+        → Γ ⊢ EitherTy A B
         -- case Left
-        → Γ ⊢ Either A B 
+        → Γ ⊢ EitherTy A B 
         → Γ , A ⊢ C
         -- case Right
-        → Γ ⊢ Either A B
+        → Γ ⊢ EitherTy A B
         → Γ , B ⊢ C
         -- Result
         → Γ ⊢ C
