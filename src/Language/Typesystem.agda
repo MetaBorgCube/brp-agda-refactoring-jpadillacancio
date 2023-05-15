@@ -16,7 +16,7 @@ infixl 5 _,_
 
 infixr 7 _⇒_
 
-infix  5 ƛ_
+infix  5 ƛ
 -- infix  5 μ_
 infixl 7 _·_
 -- infix  8 `suc_
@@ -66,13 +66,13 @@ data _∋_ : Context → Type → Set where
     → Γ , B ∋ A
 
 data _⊢_ : Context → Type → Set where
-    var_ :  ∀ {Γ A}
+    var :  ∀ {Γ A}
         → Γ ∋ A
         -----
         → Γ ⊢ A 
     
     -- Add fixpoints or try to integrate them with lambdas
-    ƛ_  : ∀ {Γ A B}
+    ƛ  : ∀ {Γ A B}
         → Γ , A ⊢ B
         ---------
         → Γ ⊢ A ⇒ B 
@@ -135,29 +135,29 @@ data _⊢_ : Context → Type → Set where
 
     -- For now only support pattern matching on list/EitherTy/maybe
     -- Consider extending pattern matching to be on a type similar to an association list
-    caseM_of_to_or_to_ : ∀ {Γ A}    
+    caseM_of_to_or_to_ : ∀ {Γ A B}    
         -- thing ur matching on
         → Γ ⊢ Maybe A
         -- case Nothing
         → Γ ⊢ PatternTy NothingPattern
-        → Γ ⊢ A
+        → Γ ⊢ B
         -- case Just x
         → Γ ⊢ PatternTy JustPattern
-        → Γ , A ⊢ A
+        → Γ , A ⊢ B
         -- Result
-        → Γ ⊢ A
+        → Γ ⊢ B
 
-    caseL_of_to_or_to_ : ∀ {Γ A}    
+    caseL_of_to_or_to_ : ∀ {Γ A B}    
         -- thing ur matching on
         → Γ ⊢ List A
         -- case []
         → Γ ⊢ PatternTy []Pattern
-        → Γ ⊢ A
+        → Γ ⊢ B
         -- case x :: xs
         → Γ ⊢ PatternTy ::Pattern
-        → Γ , A , List A ⊢ A
+        → Γ , A , List A ⊢ B
         -- Result
-        → Γ ⊢ A
+        → Γ ⊢ B
 
     -- Pattern Terms
     JustP :  ∀ {Γ}
@@ -201,4 +201,4 @@ count {Γ , _} {(suc n)} (s≤s p)    =  S (count p)
   → {n∈Γ : True (suc n ≤? length Γ)}
     --------------------------------
   → Γ ⊢ lookup (toWitness n∈Γ)
-#_ n {n∈Γ}  =  var count (toWitness n∈Γ)   
+#_ n {n∈Γ}  =  var (count (toWitness n∈Γ))   

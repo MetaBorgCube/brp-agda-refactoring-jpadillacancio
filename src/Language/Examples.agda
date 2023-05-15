@@ -5,7 +5,7 @@ open import Data.Integer.Base using (ℤ)
 open import Semantics
 
 add1 : ∀ {Γ} → Γ ⊢ IntTy ⇒ IntTy
-add1 = ƛ (Int ℤ.pos 1) + (# 0) 
+add1 = ƛ ((Int ℤ.pos 1) + (# 0)) 
 
 matchJust : ∀ {Γ} → Γ ⊢ Maybe IntTy ⇒ IntTy
 matchJust = ƛ (caseM (# 0) of

@@ -48,7 +48,7 @@ data _⊢e_↓_ : ∀ {Γ : Context} {ty : Type} → Env Γ → (Γ ⊢ ty ) →
         → γ ⊢e var x ↓ γ x
     
     ↓ƛ : ∀ {Γ} {γ : Env Γ} {argTy retTy : Type} {body : Γ , argTy ⊢ retTy }
-        → γ ⊢e ƛ  body ↓ ClosV γ body
+        → γ ⊢e ƛ body ↓ ClosV γ body
 
     ↓· : ∀ {Γ Γ-clos argVal} {γ : Env Γ} {γ-clos : Env Γ-clos} {argTy retTy : Type} {arg : Γ ⊢ argTy}  {body : Γ-clos , argTy ⊢ retTy } {fun : Γ ⊢ argTy ⇒ retTy} {res}
         -- evaluate to function
