@@ -8,6 +8,7 @@ open import Relation.Nullary.Decidable using (⌊_⌋; True; toWitness; fromWitn
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Data.Product using (_×_) renaming (_,_ to ⟨_,_⟩)
 open import Relation.Nullary using (¬_)
+open import Data.Nat using (ℕ; zero; suc; _≤_; _≤?_; z≤n; s≤s)
 
 updateType : Type → Type
 updateType (Maybe t) = List updateType t
@@ -27,49 +28,49 @@ convertLookup : ∀ {ty Γ} → Γ ∋ ty → updateContext Γ ∋ updateType ty
 convertLookup Z = Z
 convertLookup (S l) = S convertLookup l
 
-convertJustƛ-body :  ∀ { Γ A aTy rTy }   → Γ , A , aTy ⊢ rTy → updateContext Γ , updateType A , (List updateType A), updateType aTy ⊢ updateType rTy
-convertJustƛ-body (var Z) = var Z
-convertJustƛ-body (var (S Z)) = var (S (S Z))
-convertJustƛ-body (var (S (S x))) = var (S (S (S convertLookup x)))
-convertJustƛ-body (ƛ e) = {!   !}
-convertJustƛ-body (e · e₁) = {!   !}
-convertJustƛ-body (Int x) = {!   !}
-convertJustƛ-body (e + e₁) = {!   !}
-convertJustƛ-body (e - e₁) = {!   !}
-convertJustƛ-body (e * e₁) = {!   !}
-convertJustƛ-body Nothing = {!   !}
-convertJustƛ-body (Just e) = {!   !}
-convertJustƛ-body [] = {!   !}
-convertJustƛ-body (e :: e₁) = {!   !}
-convertJustƛ-body (Left e) = {!   !}
-convertJustƛ-body (Right e) = {!   !}
-convertJustƛ-body (caseM e of e₁ to e₂ or e₃ to e₄) = {!   !}
-convertJustƛ-body (caseL e of e₁ to e₂ or e₃ to e₄) = {!   !}
-convertJustƛ-body JustP = {!   !}
-convertJustƛ-body NothingP = {!   !}
-convertJustƛ-body ::P = {!   !}
-convertJustƛ-body []P = {!   !}
+insertType : (Γ : Context) →  (n : ℕ) → (p : n ≤ length Γ) → (ignoreTy : Type)  → Context
+insertType Γ zero _ ty = Γ , ty
+insertType (Γ , x) (suc n) (s≤s p) ty = insertType Γ n p ty , x
 
-convertJustClause : ∀ { Γ A B } → Γ , A ⊢ B →  updateContext Γ , updateType A , List updateType A ⊢ updateType B
-convertJustClause (var x) = var (S convertLookup x)
-convertJustClause (ƛ {_} {aTy} {rTy} e) = ƛ {!    !}
-convertJustClause (e · e₁) = convertJustClause e · convertJustClause e₁
-convertJustClause (Int x) = Int x
-convertJustClause (e + e₁) = convertJustClause e + convertJustClause e₁
-convertJustClause (e - e₁) = convertJustClause e - convertJustClause e₁
-convertJustClause (e * e₁) = convertJustClause e * convertJustClause e₁
-convertJustClause Nothing = []
-convertJustClause (Just e) = convertJustClause e :: []
-convertJustClause [] = []
-convertJustClause (e :: e₁) = convertJustClause e :: convertJustClause e₁
-convertJustClause (Left e) = Left (convertJustClause e)
-convertJustClause (Right e) = Right (convertJustClause e)
-convertJustClause (caseM matchOn of nothingP to nothingClause or justP to justClause) = {!    !}
-convertJustClause (caseL matchOn of []Pat to []Clause or ::Pat to ::Clause) = {!   !}
-convertJustClause JustP = ::P
-convertJustClause NothingP = []P
-convertJustClause ::P = ::P
-convertJustClause []P = []P
+-- unify with other helper function to generic fun
+convertLookup2 : ∀ {ty Γ n p iTy} → Γ ∋ ty → insertType Γ n p iTy ∋ ty
+convertLookup2 {_} {_} {zero} Z = S Z 
+convertLookup2 {_} {_} {suc n} {s≤s p} Z = Z
+convertLookup2 {_} {_} {zero} (S l) = S (S l)
+convertLookup2 {_} {_} {suc n} {s≤s p} (S l) = S convertLookup2 l
+
+-- enforce that insertion can only be as large as Γ 
+ignoreConversion : ∀ {Γ  ty} →  Γ ⊢ ty → (n : ℕ) → (p : n ≤ length Γ) → (ignoreTy : Type) → insertType Γ n p ignoreTy ⊢ ty
+ignoreConversion (var x) zero p iTy = var (S x)
+ignoreConversion (var Z) (suc n) p iTy = var (convertLookup2 Z)
+ignoreConversion {Γ} (var (S x)) (suc n) p iTy = var (convertLookup2 (S x))
+ignoreConversion (ƛ ex) n p iTy = ƛ (ignoreConversion ex (suc n) (s≤s p) iTy)
+ignoreConversion (ex · ex₁) n p iTy = ignoreConversion ex n p iTy · ignoreConversion ex₁ n p iTy
+ignoreConversion (Int x) n p iTy = Int x
+ignoreConversion (ex + ex₁) n p iTy = ignoreConversion ex n p iTy + ignoreConversion ex₁ n p iTy
+ignoreConversion (ex - ex₁) n p iTy = ignoreConversion ex n p iTy - ignoreConversion ex₁ n p iTy
+ignoreConversion (ex * ex₁) n p iTy = ignoreConversion ex n p iTy * ignoreConversion ex₁ n p iTy
+ignoreConversion Nothing n p iTy = Nothing
+ignoreConversion (Just ex) n p iTy = Just (ignoreConversion ex n p iTy)
+ignoreConversion [] n p iTy = []
+ignoreConversion (ex :: ex₁) n p iTy = ignoreConversion ex n p iTy :: ignoreConversion ex₁ n p iTy
+ignoreConversion (Left ex) n p iTy = Left (ignoreConversion ex n p iTy)
+ignoreConversion (Right ex) n p iTy = Right (ignoreConversion ex n p iTy)
+ignoreConversion (caseM ex of ex₁ to ex₂ or ex₃ to ex₄) n p iTy = caseM ignoreConversion ex n p iTy of 
+    ignoreConversion ex₁ n p iTy to ignoreConversion ex₂ n p iTy 
+    or 
+    ignoreConversion ex₃ n p iTy to ignoreConversion ex₄ (suc n) (s≤s p) iTy
+ignoreConversion (caseL ex of ex₁ to ex₂ or ex₃ to ex₄) n p iTy = caseL ignoreConversion ex n p iTy of 
+    ignoreConversion ex₁ n p iTy to ignoreConversion ex₂ n p iTy 
+    or 
+    ignoreConversion ex₃ n p iTy to ignoreConversion ex₄ (suc (suc n)) (s≤s (s≤s p)) iTy
+ignoreConversion JustP n p iTy = JustP
+ignoreConversion NothingP n p iTy = NothingP
+ignoreConversion ::P n p iTy = ::P
+ignoreConversion []P n p iTy = []P
+
+I-hate-myself : ∀ {Γ A ty} → Γ , A ⊢ ty → Γ , A , List A ⊢ ty 
+I-hate-myself {_} {A} ex = ignoreConversion ex zero z≤n (List A)
 
 -- If ty1 is a Maybe then ty2 is a list else ty1 == ty2
 -- Either (ty1=M → ty2=L) (ty1=ty2) 
@@ -87,14 +88,14 @@ refactorListH [] = []
 refactorListH (e :: e₁) = refactorListH e :: refactorListH e₁
 refactorListH (Left e) = Left (refactorListH e)
 refactorListH (Right e) = Right (refactorListH e)
-refactorListH {_} {rTy} (caseM matchOn of nothingP to nothingClause or justP to justClause) = 
+refactorListH (caseM_of_to_or_to_ {_} {A} matchOn nothingP nothingClause justP justClause) = 
     caseL refactorListH matchOn of 
         refactorListH nothingP to refactorListH nothingClause 
         or 
-        refactorListH justP to convertJustClause justClause
+        refactorListH justP to ignoreConversion (refactorListH justClause) zero z≤n (List updateType A)
 refactorListH (caseL e of e₁ to e₂ or e₃ to e₄) = 
-    caseL refactorListH e of refactorListH 
-        e₁ to refactorListH e₂ 
+    caseL refactorListH e of 
+        refactorListH e₁ to refactorListH e₂ 
         or 
         refactorListH e₃ to refactorListH e₄
 refactorListH JustP = ::P
