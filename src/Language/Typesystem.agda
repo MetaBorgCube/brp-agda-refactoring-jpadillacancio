@@ -44,8 +44,8 @@ data Type : Set where
     IntTy : Type
     -- Parametric types 
     _⇒_ : Type → Type → Type
-    Maybe_ : Type → Type
-    List_ : Type → Type
+    MaybeTy : Type → Type
+    ListTy : Type → Type
     EitherTy : Type → Type → Type  
     
     PatternTy : Pattern → Type
@@ -102,27 +102,27 @@ data _⊢_ : Context → Type → Set where
         → Γ ⊢ IntTy
 
 
-    -- Maybe
+    -- MaybeTy
     Nothing : ∀ {Γ A}
-        → Γ ⊢ Maybe A
+        → Γ ⊢ MaybeTy A
     Just : ∀ {Γ A}
         → Γ ⊢ A
-        → Γ ⊢ Maybe A
+        → Γ ⊢ MaybeTy A
 
-    -- List
+    -- ListTy
     [] :  ∀ {Γ A}
-        → Γ ⊢ List A
+        → Γ ⊢ ListTy A
     _::_ : ∀ {Γ A}
         → Γ ⊢ A
-        → Γ ⊢ List A
-        → Γ ⊢ List A
+        → Γ ⊢ ListTy A
+        → Γ ⊢ ListTy A
     {-
     head : ∀ {Γ A}
-        → Γ ⊢ List A
+        → Γ ⊢ ListTy A
         → Γ ⊢ A
     tail : ∀ {Γ A}
-        → Γ ⊢ List A
-        → Γ ⊢ List A
+        → Γ ⊢ ListTy A
+        → Γ ⊢ ListTy A
     -}
       
     -- EitherTy
@@ -133,11 +133,11 @@ data _⊢_ : Context → Type → Set where
         → Γ ⊢ A
         → Γ ⊢ EitherTy A B
 
-    -- For now only support pattern matching on list/EitherTy/maybe
-    -- Consider extending pattern matching to be on a type similar to an association list
+    -- For now only support pattern matching on ListTy/EitherTy/MaybeTy
+    -- Consider extending pattern matching to be on a type similar to an association ListTy
     caseM_of_to_or_to_ : ∀ {Γ A B}    
         -- thing ur matching on
-        → Γ ⊢ Maybe A
+        → Γ ⊢ MaybeTy A
         -- case Nothing
         → Γ ⊢ PatternTy NothingPattern
         → Γ ⊢ B
@@ -149,13 +149,13 @@ data _⊢_ : Context → Type → Set where
 
     caseL_of_to_or_to_ : ∀ {Γ A B}    
         -- thing ur matching on
-        → Γ ⊢ List A
+        → Γ ⊢ ListTy A
         -- case []
         → Γ ⊢ PatternTy []Pattern
         → Γ ⊢ B
         -- case x :: xs
         → Γ ⊢ PatternTy ::Pattern
-        → Γ , A , List A ⊢ B
+        → Γ , A , ListTy A ⊢ B
         -- Result
         → Γ ⊢ B
 

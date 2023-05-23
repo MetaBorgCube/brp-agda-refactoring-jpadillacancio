@@ -12,37 +12,39 @@ src: https://plfa.github.io/Denotational/
 
 Env : Context → Set 
 
-data Value : Set where
-    IntV : ℤ → Value
+-- Index this over types
+data Value : Type → Set where
+    IntV : ℤ → Value IntTy
     
-    -- Maybe
-    NothingV : Value
+    -- MaybeTy
+    NothingV : ∀ {ty} → Value (MaybeTy ty)
     -- Not sure if this should take a value or a Term
-    JustV : Value → Value
+    JustV : ∀ {ty} → Value ty → Value (MaybeTy ty)
 
-    -- List
-    NilV : Value
-    ConsV : Value → Value → Value
+    -- ListTy
+    NilV : ∀ {ty} → Value (ListTy ty)
+    ConsV : ∀ {ty} → Value ty → Value (ListTy ty) → Value (ListTy ty)
 
     -- EitherTy
-    LeftV : Value → Value
-    RightV : Value → Value
+    LeftV : ∀ {A B} → Value A → Value (EitherTy A B)
+    RightV : ∀ {A B} → Value B → Value (EitherTy A B)
 
-    ClosV : ∀ {Γ} {argTy retTy} → Env Γ → Γ , argTy ⊢ retTy → Value
+    ClosV : ∀ {Γ} {argTy retTy} → Env Γ → Γ , argTy ⊢ retTy → Value (argTy ⇒ retTy)
+
+Env Γ =  {t : Type} → ∀ (x : Γ ∋ t ) → Value t
 
 
-Env Γ =  {t : Type} → ∀ (x : Γ ∋ t ) → Value
 
 ∅' : Env ∅
 ∅' ()
 
-_,'_ : ∀ {Γ ty} → Env Γ → Value → Env (Γ , ty)
+_,'_ : ∀ {Γ ty} → Env Γ → Value ty → Env (Γ , ty)
 (γ ,' c) Z = c
 (γ ,' c) (S x) = γ x
 
 infix 3 _⊢e_↓_
 
-data _⊢e_↓_ : ∀ {Γ : Context} {ty : Type} → Env Γ → (Γ ⊢ ty ) → Value → Set where
+data _⊢e_↓_ : ∀ {Γ : Context} {ty : Type} → Env Γ → (Γ ⊢ ty ) → Value ty → Set where
     ↓var : ∀ {Γ} {γ : Env Γ} {ty : Type} -- {x : Γ ∋ ty}
         → (x : Γ ∋ ty)
         → γ ⊢e var x ↓ γ x
@@ -50,10 +52,10 @@ data _⊢e_↓_ : ∀ {Γ : Context} {ty : Type} → Env Γ → (Γ ⊢ ty ) →
     ↓ƛ : ∀ {Γ} {γ : Env Γ} {argTy retTy : Type} {body : Γ , argTy ⊢ retTy }
         → γ ⊢e ƛ body ↓ ClosV γ body
 
-    ↓· : ∀ {Γ Γ-clos argVal} {γ : Env Γ} {γ-clos : Env Γ-clos} {argTy retTy : Type} {arg : Γ ⊢ argTy}  {body : Γ-clos , argTy ⊢ retTy } {fun : Γ ⊢ argTy ⇒ retTy} {res}
+    ↓· : ∀ {Γ Γ-clos} {γ : Env Γ} {γ-clos : Env Γ-clos} {argTy retTy : Type} {arg : Γ ⊢ argTy} {argVal : Value argTy}  {body : Γ-clos , argTy ⊢ retTy } {fun : Γ ⊢ argTy ⇒ retTy} {res}
         -- evaluate to function
         → γ ⊢e fun ↓ ClosV γ-clos body
-        -- evalue body under extended closure environment
+        -- eValue ? body under extended closure environment
         → γ ⊢e arg ↓ argVal
         -- evaluate body, extended by argument
         → γ-clos ,' argVal ⊢e body ↓ res
@@ -83,7 +85,7 @@ data _⊢e_↓_ : ∀ {Γ : Context} {ty : Type} → Env Γ → (Γ ⊢ ty ) →
     
     -- Currently all these assume inner Type is always IntTy
 
-    -- Maybe
+    -- MaybeTy
     ↓Nothing : ∀ {Γ A} {γ : Env Γ}
         → γ ⊢e Nothing {_} {A} ↓ NothingV
     
@@ -92,10 +94,10 @@ data _⊢e_↓_ : ∀ {Γ : Context} {ty : Type} → Env Γ → (Γ ⊢ ty ) →
         → γ ⊢e inner ↓ val 
         → γ ⊢e Just inner ↓ JustV val 
     
-    -- List
+    -- ListTy
     ↓[] : ∀ {Γ A} {γ : Env Γ}
         → γ ⊢e [] {_}  {A} ↓ NilV
-    ↓:: : ∀ {Γ headV tailV} {γ : Env Γ} {head : Γ ⊢ IntTy} {tail : Γ ⊢ List IntTy}
+    ↓:: : ∀ {Γ headV tailV} {γ : Env Γ} {head : Γ ⊢ IntTy} {tail : Γ ⊢ ListTy IntTy}
         -- get first type
         → γ ⊢e head ↓ headV
         -- ensure second arg is tail with right type
@@ -103,28 +105,29 @@ data _⊢e_↓_ : ∀ {Γ : Context} {ty : Type} → Env Γ → (Γ ⊢ ty ) →
         → γ ⊢e head :: tail ↓ ConsV headV tailV 
     
     {-
-    ↓headI : ∀ {Γ headV tailV} {γ : Env Γ } {list : Γ ⊢ List IntTy}
-        -- evaluate to a list
-        → γ ⊢e list ↓ ConsV headV tailV
-        → γ ⊢e head list ↓ headV
-    ↓tailI : ∀ {Γ headV tailV} {γ : Env Γ } {list : Γ ⊢ List IntTy}
+    ↓headI : ∀ {Γ headV tailV} {γ : Env Γ } {ListTy : Γ ⊢ ListTy IntTy}
+        -- evaluate to a ListTy
+        → γ ⊢e ListTy ↓ ConsV headV tailV
+        → γ ⊢e head ListTy ↓ headV
+    ↓tailI : ∀ {Γ headV tailV} {γ : Env Γ } {list : Γ ⊢ ListTy IntTy}
         -- evaluate to a list
         → γ ⊢e list ↓ ConsV headV tailV
         → γ ⊢e tail list ↓ tailV
     -}
       
     -- EitherTy
-    ↓Left : ∀ {Γ val A B } {γ : Env Γ } {x : Γ ⊢ A}
+    ↓Left : ∀ {Γ A B} {val : Value A} {γ : Env Γ } {x : Γ ⊢ A}
         → γ ⊢e x ↓ val
         → γ ⊢e (Left {_} {_} {B} x) ↓ LeftV val
-    ↓Right : ∀ {Γ val A B} {γ : Env Γ } {x : Γ ⊢ B}
+    ↓Right : ∀ {Γ B} {val : Value B} {γ : Env Γ } {x : Γ ⊢ B}
         → γ ⊢e x ↓ val
-        → γ ⊢e (Right {_} {_} {A} x) ↓ RightV val
+        → γ ⊢e (Right x) ↓ RightV val
     
-    -- For now only support pattern matching on list/EitherTy/maybe
+
+    -- For now only support pattern matching on list/EitherTy/MaybeTy
 
     -- Only checking if term is a Just, not checking if it matches the value (if given)  
-    ↓caseMJ : ∀ {Γ val justClauseRes A} {γ : Env Γ } {matchOn : Γ ⊢ Maybe A} {justClause : Γ , A ⊢ A} {notClause : Γ ⊢ A}
+    ↓caseMJ : ∀ {Γ A B} {val : Value A} {justClauseRes : Value B} {γ : Env Γ } {matchOn : Γ ⊢ MaybeTy A} {justClause : Γ , A ⊢ B} {notClause : Γ ⊢ B}
         -- Check if term being matched on is a Just
         → γ ⊢e matchOn ↓ JustV val
         -- Get result of evaluating Just clause
@@ -133,7 +136,7 @@ data _⊢e_↓_ : ∀ {Γ : Context} {ty : Type} → Env Γ → (Γ ⊢ ty ) →
             NothingP to notClause
             or
             JustP to justClause ↓ justClauseRes 
-    ↓caseMN : ∀ {Γ notClauseRes A} {γ : Env Γ } {matchOn : Γ ⊢ Maybe A} {justClause : Γ , A ⊢ A} {notClause : Γ ⊢ A}
+    ↓caseMN : ∀ {Γ A B} {notClauseRes : Value B} {γ : Env Γ } {matchOn : Γ ⊢ MaybeTy A} {justClause : Γ , A ⊢ B} {notClause : Γ ⊢ B}
         -- Check if term being matched on is a Just
         → γ ⊢e matchOn ↓ NothingV
         -- Get result of evaluating Just clause
@@ -143,7 +146,7 @@ data _⊢e_↓_ : ∀ {Γ : Context} {ty : Type} → Env Γ → (Γ ⊢ ty ) →
             or
             JustP to justClause ↓ notClauseRes
     
-    ↓caseL:: : ∀ {Γ hVal tVal ::ClauseRes A} {γ : Env Γ } {matchOn : Γ ⊢ List A} {::Clause : Γ , A , List A ⊢ A} {[]Clause : Γ ⊢ A}
+    ↓caseL:: : ∀ {Γ A B} {hVal : Value A} {tVal : Value (ListTy A)} {::ClauseRes : Value B} {γ : Env Γ } {matchOn : Γ ⊢ ListTy A} {::Clause : Γ , A , ListTy A ⊢ B} {[]Clause : Γ ⊢ B}
         -- Check if term being matched on is a (x::xs)
         → γ ⊢e matchOn ↓ ConsV hVal tVal
         -- Get result of evaluating :: clause
@@ -152,7 +155,7 @@ data _⊢e_↓_ : ∀ {Γ : Context} {ty : Type} → Env Γ → (Γ ⊢ ty ) →
             []P to []Clause
             or
             ::P to ::Clause ↓ ::ClauseRes
-    ↓caseL[] : ∀ {Γ hVal tVal []ClauseRes A} {γ : Env Γ } {matchOn : Γ ⊢ List A} {::Clause : Γ , A , List A ⊢ A} {[]Clause : Γ ⊢ A}
+    caseL[] : ∀ {Γ A B} {hVal : Value A} {tVal : Value (ListTy A)} {[]ClauseRes : Value B} {γ : Env Γ } {matchOn : Γ ⊢ ListTy A} {::Clause : Γ , A , ListTy A ⊢ B} {[]Clause : Γ ⊢ B}
         -- Check if term being matched on is a (x::xs)
         → γ ⊢e matchOn ↓ ConsV hVal tVal
         -- Get result of evaluating :: clause

@@ -11,10 +11,10 @@ open import Relation.Nullary using (¬_)
 open import Data.Nat using (ℕ; zero; suc; _≤_; _≤?_; z≤n; s≤s)
 
 updateType : Type → Type
-updateType (Maybe t) = List updateType t
+updateType (MaybeTy t) = ListTy (updateType t)
 updateType IntTy = IntTy
 updateType (ty₁ ⇒ ty₂) = updateType ty₁ ⇒ updateType ty₂
-updateType (List ty₁) = List updateType ty₁
+updateType (ListTy ty₁) = ListTy (updateType ty₁)
 updateType (EitherTy ty₁ ty₂) = EitherTy (updateType ty₁) (updateType ty₂)
 updateType (PatternTy JustPattern) = PatternTy ::Pattern
 updateType (PatternTy NothingPattern) = PatternTy []Pattern
@@ -69,10 +69,10 @@ ignoreConversion NothingP n p iTy = NothingP
 ignoreConversion ::P n p iTy = ::P
 ignoreConversion []P n p iTy = []P
 
-I-hate-myself : ∀ {Γ A ty} → Γ , A ⊢ ty → Γ , A , List A ⊢ ty 
-I-hate-myself {_} {A} ex = ignoreConversion ex zero z≤n (List A)
+I-hate-myself : ∀ {Γ A ty} → Γ , A ⊢ ty → Γ , A , ListTy A ⊢ ty 
+I-hate-myself {_} {A} ex = ignoreConversion ex zero z≤n (ListTy A)
 
--- If ty1 is a Maybe then ty2 is a list else ty1 == ty2
+-- If ty1 is a MaybeTy then ty2 is a ListTy else ty1 == ty2
 -- Either (ty1=M → ty2=L) (ty1=ty2) 
 refactorListH : ∀ {Γ  ty₁} → Γ ⊢ ty₁ → (updateContext Γ) ⊢ (updateType ty₁)
 refactorListH (var x) = var (convertLookup x)
@@ -92,7 +92,7 @@ refactorListH (caseM_of_to_or_to_ {_} {A} matchOn nothingP nothingClause justP j
     caseL refactorListH matchOn of 
         refactorListH nothingP to refactorListH nothingClause 
         or 
-        refactorListH justP to ignoreConversion (refactorListH justClause) zero z≤n (List updateType A)
+        refactorListH justP to ignoreConversion (refactorListH justClause) zero z≤n (ListTy (updateType A))
 refactorListH (caseL e of e₁ to e₂ or e₃ to e₄) = 
     caseL refactorListH e of 
         refactorListH e₁ to refactorListH e₂ 
