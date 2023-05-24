@@ -31,7 +31,7 @@ data Value : Type → Set where
 
     ClosV : ∀ {Γ} {argTy retTy} → Env Γ → Γ , argTy ⊢ retTy → Value (argTy ⇒ retTy)
 
-Env Γ =  {t : Type} → ∀ (x : Γ ∋ t ) → Value t
+Env Γ =  ∀ {t : Type} → ∀ (x : Γ ∋ t ) → Value t
 
 
 
@@ -155,9 +155,9 @@ data _⊢e_↓_ : ∀ {Γ : Context} {ty : Type} → Env Γ → (Γ ⊢ ty ) →
             []P to []Clause
             or
             ::P to ::Clause ↓ ::ClauseRes
-    caseL[] : ∀ {Γ A B} {hVal : Value A} {tVal : Value (ListTy A)} {[]ClauseRes : Value B} {γ : Env Γ } {matchOn : Γ ⊢ ListTy A} {::Clause : Γ , A , ListTy A ⊢ B} {[]Clause : Γ ⊢ B}
+    ↓caseL[] : ∀ {Γ A B} {hVal : Value A} {tVal : Value (ListTy A)} {[]ClauseRes : Value B} {γ : Env Γ } {matchOn : Γ ⊢ ListTy A} {::Clause : Γ , A , ListTy A ⊢ B} {[]Clause : Γ ⊢ B}
         -- Check if term being matched on is a (x::xs)
-        → γ ⊢e matchOn ↓ ConsV hVal tVal
+        → γ ⊢e matchOn ↓ NilV
         -- Get result of evaluating :: clause
         → γ ⊢e []Clause ↓ []ClauseRes
         → γ ⊢e caseL matchOn of 
@@ -190,3 +190,4 @@ data _⊢e_↓_ : ∀ {Γ : Context} {ty : Type} → Env Γ → (Γ ⊢ ty ) →
         -- Result
         → Γ ⊢ C
     -}    
+ 
