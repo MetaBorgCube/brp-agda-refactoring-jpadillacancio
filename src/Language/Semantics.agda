@@ -42,6 +42,7 @@ _,'_ : ∀ {Γ ty} → Env Γ → Value ty → Env (Γ , ty)
 (γ ,' c) Z = c
 (γ ,' c) (S x) = γ x
 
+
 infix 3 _⊢e_↓_
 
 data _⊢e_↓_ : ∀ {Γ : Context} {ty : Type} → Env Γ → (Γ ⊢ ty ) → Value ty → Set where
@@ -155,7 +156,7 @@ data _⊢e_↓_ : ∀ {Γ : Context} {ty : Type} → Env Γ → (Γ ⊢ ty ) →
             []P to []Clause
             or
             ::P to ::Clause ↓ ::ClauseRes
-    ↓caseL[] : ∀ {Γ A B} {hVal : Value A} {tVal : Value (ListTy A)} {[]ClauseRes : Value B} {γ : Env Γ } {matchOn : Γ ⊢ ListTy A} {::Clause : Γ , A , ListTy A ⊢ B} {[]Clause : Γ ⊢ B}
+    ↓caseL[] : ∀ {Γ A B} {[]ClauseRes : Value B} {γ : Env Γ } {matchOn : Γ ⊢ ListTy A} {::Clause : Γ , A , ListTy A ⊢ B} {[]Clause : Γ ⊢ B}
         -- Check if term being matched on is a (x::xs)
         → γ ⊢e matchOn ↓ NilV
         -- Get result of evaluating :: clause
