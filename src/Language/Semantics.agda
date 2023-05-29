@@ -43,6 +43,13 @@ _,'_ : ∀ {Γ ty} → Env Γ → Value ty → Env (Γ , ty)
 (γ ,' c) (S x) = γ x
 
 
+Env-tail : ∀ {Γ ty} → Env (Γ , ty) → Env Γ
+Env-tail γ x = γ (S x)
+
+Env-head : ∀ {Γ ty} → Env (Γ , ty) → Value ty
+Env-head γ = γ Z
+
+
 infix 3 _⊢e_↓_
 
 data _⊢e_↓_ : ∀ {Γ : Context} {ty : Type} → Env Γ → (Γ ⊢ ty ) → Value ty → Set where

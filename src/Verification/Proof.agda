@@ -45,16 +45,19 @@ insertValAtIdx : ∀ {Γ ty} → (γ : Env Γ) → (n : ℕ) → {p : n ≤ leng
 insertValAtIdx γ zero v = γ ,' v
 insertValAtIdx {Γ , x} γ (suc n) {s≤s p} v = insertValAtIdx (Env-tail γ) n v ,' Env-head γ  
 
+insertIgnoredValClos : ∀ {eTy} → Value eTy → Value eTy
+insertIgnoredValClos = {!   !}
+
 insertIgnoredVal : ∀ {Γ eTy iTy} {e : Γ ⊢ eTy} {v : Value eTy} {γ : Env Γ} 
     → γ ⊢e e ↓ v 
     → {n : ℕ} 
     → {p : n ≤ length Γ} 
     → {iVal : Value iTy} 
-    → insertValAtIdx γ n {p} iVal ⊢e insertIgnoredType e ↓ v
-insertIgnoredVal (↓var x) {n} {p} {iVal} = {!   !}
-insertIgnoredVal ↓ƛ = {!   !}
--- this does not feel right
-insertIgnoredVal {Γ} (↓· {γ-clos = γ-clos} d d₁ d₂) = ↓· {γ-clos = {! updateEnv ?  !}} (insertIgnoredVal d) (insertIgnoredVal d₁)  {!   !}
+    → insertValAtIdx γ n {p} iVal ⊢e insertIgnoredType e ↓ {!  insertIgnoredValClos v !}
+insertIgnoredVal (↓var x) {n} {p} {iVal} = {! ↓  !}
+insertIgnoredVal ↓ƛ {zero} {z≤n} {iVal} = {!   !}
+insertIgnoredVal ↓ƛ {suc n} {p} {iVal} = {!   !}
+insertIgnoredVal {Γ} (↓· {γ-clos = γ-clos} d d₁ d₂) = ↓· (insertIgnoredVal d) (insertIgnoredVal d₁)  d₂
 insertIgnoredVal ↓Int = ↓Int
 insertIgnoredVal (↓+ d d₁) = ↓+ (insertIgnoredVal d) (insertIgnoredVal d₁)
 insertIgnoredVal (↓- d d₁) = ↓- (insertIgnoredVal d) (insertIgnoredVal d₁)
