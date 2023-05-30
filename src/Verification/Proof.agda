@@ -45,8 +45,9 @@ insertValAtIdx : ∀ {Γ ty} → (γ : Env Γ) → (n : ℕ) → {p : n ≤ leng
 insertValAtIdx γ zero v = γ ,' v
 insertValAtIdx {Γ , x} γ (suc n) {s≤s p} v = insertValAtIdx (Env-tail γ) n v ,' Env-head γ  
 
-insertIgnoredValClos : ∀ {eTy} → Value eTy → Value eTy
-insertIgnoredValClos = {!   !}
+insertIgnoredValClos : ∀ {Γ eTy} → Value eTy → {n : ℕ} → {p : n ≤ length Γ} → Value eTy
+insertIgnoredValClos (ClosV γ body) = {!   !}
+insertIgnoredValClos v = v
 
 insertIgnoredVal : ∀ {Γ eTy iTy} {e : Γ ⊢ eTy} {v : Value eTy} {γ : Env Γ} 
     → γ ⊢e e ↓ v 
@@ -54,7 +55,7 @@ insertIgnoredVal : ∀ {Γ eTy iTy} {e : Γ ⊢ eTy} {v : Value eTy} {γ : Env �
     → {p : n ≤ length Γ} 
     → {iVal : Value iTy} 
     → insertValAtIdx γ n {p} iVal ⊢e insertIgnoredType e ↓ {!  insertIgnoredValClos v !}
-insertIgnoredVal (↓var x) {n} {p} {iVal} = {! ↓  !}
+insertIgnoredVal (↓var x) {n} {p} {iVal} = {!   !}
 insertIgnoredVal ↓ƛ {zero} {z≤n} {iVal} = {!   !}
 insertIgnoredVal ↓ƛ {suc n} {p} {iVal} = {!   !}
 insertIgnoredVal {Γ} (↓· {γ-clos = γ-clos} d d₁ d₂) = ↓· (insertIgnoredVal d) (insertIgnoredVal d₁)  d₂

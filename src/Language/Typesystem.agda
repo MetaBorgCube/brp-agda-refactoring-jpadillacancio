@@ -12,7 +12,7 @@ src: https://plfa.github.io/DeBruijn/
 
 infix  4 _⊢_
 infix  4 _∋_
-infixl 5 _,_
+infixl 5 [_]_,_
 
 infixr 7 _⇒_
 
@@ -22,7 +22,7 @@ infixl 7 _·_
 -- infix  8 `suc_
 -- infix  9 `_
 infix  9 S_
-infix  9 #_
+-- infix  9 #_
 
 
 data Pattern : Set where
@@ -50,74 +50,73 @@ data Type : Set where
     
     PatternTy : Pattern → Type
 
-data Context : Set where
-    ∅ : Context
-    _,_ : Context → Type → Context
+data Context : ℕ → Set where
+    ∅ : Context 0
+    [_]_,_ : (n : ℕ) → Context n → Type → Context (suc n)
 
-data _∋_ : Context → Type → Set where
+data _∋_ : {n : ℕ} → Context n → Type → Set where
 
-  Z : ∀ {Γ A}
-      ---------
-    → Γ , A ∋ A
+  Z : ∀ {A} {n : ℕ} {Γ : Context n}
+      --------- [ n ] Γ , A ∋ A
+    → [ n ] Γ , A ∋ A
 
-  S_ : ∀ {Γ A B}
+  S_ : ∀ {A B} {n : ℕ} {Γ : Context n}
     → Γ ∋ A
-      ---------
-    → Γ , B ∋ A
+      --------- [ n ] Γ , B ∋ A
+    → [ n ] Γ , B ∋ A
 
-data _⊢_ : Context → Type → Set where
-    var :  ∀ {Γ A}
+data _⊢_ : {n : ℕ} → Context n → Type → Set where
+    var :  ∀ {A n} {Γ : Context n}
         → Γ ∋ A
         -----
         → Γ ⊢ A 
     
     -- Add fixpoints or try to integrate them with lambdas
-    ƛ  : ∀ {Γ A B}
-        → Γ , A ⊢ B
+    ƛ  : ∀ {A B n} {Γ : Context n}
+        → [ n ] Γ , A ⊢ B
         ---------
         → Γ ⊢ A ⇒ B 
 
-    _·_ : ∀ {Γ A B}
+    _·_ : ∀ {A B n} {Γ : Context n}
         → Γ ⊢ A ⇒ B
         → Γ ⊢ A
         ---------
         → Γ ⊢ B
-    
+
     -- Int and Int operations
-    -- a wee bit confused if this should take any args
-    Int_ : ∀ {Γ}
+    Int_ : ∀ {n} {Γ : Context n}
         → ℤ
         → Γ ⊢ IntTy
-    _+_ : ∀ {Γ}
+    _+_ : ∀ {n} {Γ : Context n}
         → Γ ⊢ IntTy
         → Γ ⊢ IntTy
         → Γ ⊢ IntTy
-    _-_ : ∀ {Γ}
+    _-_ : ∀ {n} {Γ : Context n}
         → Γ ⊢ IntTy
         → Γ ⊢ IntTy
         → Γ ⊢ IntTy
-    _*_ : ∀ {Γ}
+    _*_ : ∀ {n} {Γ : Context n}
         → Γ ⊢ IntTy
         → Γ ⊢ IntTy
         → Γ ⊢ IntTy
 
 
     -- MaybeTy
-    Nothing : ∀ {Γ A}
+    Nothing : ∀ {A n} {Γ : Context n}
         → Γ ⊢ MaybeTy A
-    Just : ∀ {Γ A}
+    Just : ∀ {A n} {Γ : Context n}
         → Γ ⊢ A
         → Γ ⊢ MaybeTy A
 
     -- ListTy
-    [] :  ∀ {Γ A}
+    [] :  ∀ {A n} {Γ : Context n}
         → Γ ⊢ ListTy A
-    _::_ : ∀ {Γ A}
+    _::_ : ∀ {A n} {Γ : Context n}
         → Γ ⊢ A
         → Γ ⊢ ListTy A
         → Γ ⊢ ListTy A
     {-
-    head : ∀ {Γ A}
+    head : ∀ {A n} {Γ : Context n}
         → Γ ⊢ ListTy A
         → Γ ⊢ A
     tail : ∀ {Γ A}
@@ -126,16 +125,16 @@ data _⊢_ : Context → Type → Set where
     -}
       
     -- EitherTy
-    Left : ∀ {Γ A B}
+    Left : ∀ {A B n} {Γ : Context n}
         → Γ ⊢ A
         → Γ ⊢ EitherTy A B
-    Right : ∀ {Γ A B}
+    Right : ∀ {A B n} {Γ : Context n}
         → Γ ⊢ A
         → Γ ⊢ EitherTy A B
 
     -- For now only support pattern matching on ListTy/EitherTy/MaybeTy
     -- Consider extending pattern matching to be on a type similar to an association ListTy
-    caseM_of_to_or_to_ : ∀ {Γ A B}    
+    caseM_of_to_or_to_ : ∀ {A B n} {Γ : Context n}    
         -- thing ur matching on
         → Γ ⊢ MaybeTy A
         -- case Nothing
@@ -143,11 +142,11 @@ data _⊢_ : Context → Type → Set where
         → Γ ⊢ B
         -- case Just x
         → Γ ⊢ PatternTy JustPattern
-        → Γ , A ⊢ B
+        → [ n ] Γ , A ⊢ B
         -- Result
         → Γ ⊢ B
 
-    caseL_of_to_or_to_ : ∀ {Γ A B}    
+    caseL_of_to_or_to_ : ∀ {A B n} {Γ : Context n}    
         -- thing ur matching on
         → Γ ⊢ ListTy A
         -- case []
@@ -155,18 +154,18 @@ data _⊢_ : Context → Type → Set where
         → Γ ⊢ B
         -- case x :: xs
         → Γ ⊢ PatternTy ::Pattern
-        → Γ , A , ListTy A ⊢ B
+        → [ suc n ] ( [ n ] Γ , A) , ListTy A ⊢ B
         -- Result
         → Γ ⊢ B
 
     -- Pattern Terms
-    JustP :  ∀ {Γ}
+    JustP :  ∀ {n} {Γ : Context n}
         → Γ ⊢ PatternTy JustPattern  
-    NothingP : ∀ {Γ}
+    NothingP : ∀ {n} {Γ : Context n}
         → Γ ⊢ PatternTy NothingPattern
-    ::P : ∀ {Γ}
+    ::P : ∀ {n} {Γ : Context n}
         → Γ ⊢ PatternTy ::Pattern
-    []P : ∀ {Γ}
+    []P : ∀ {n} {Γ : Context n}
         → Γ ⊢ PatternTy []Pattern 
     {-
     
@@ -184,6 +183,7 @@ data _⊢_ : Context → Type → Set where
         → Γ ⊢ C
     -}
 
+{-  
 length : Context → ℕ
 length ∅        =  zero
 length (Γ , _)  =  suc (length Γ)
@@ -202,3 +202,4 @@ count {Γ , _} {(suc n)} (s≤s p)    =  S (count p)
     --------------------------------
   → Γ ⊢ lookup (toWitness n∈Γ)
 #_ n {n∈Γ}  =  var (count (toWitness n∈Γ))   
+-}

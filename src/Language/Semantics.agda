@@ -31,7 +31,7 @@ data Value : Type → Set where
 
     ClosV : ∀ {Γ} {argTy retTy} → Env Γ → Γ , argTy ⊢ retTy → Value (argTy ⇒ retTy)
 
-Env Γ =  ∀ {t : Type} → ∀ (x : Γ ∋ t ) → Value t
+Env Γ =  ∀ {t : Type} (x : Γ ∋ t ) → Value t
 
 
 
