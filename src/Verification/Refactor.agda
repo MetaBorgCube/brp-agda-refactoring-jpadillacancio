@@ -20,27 +20,27 @@ MaybeTy→ListTy (PatternTy JustPattern) = PatternTy ::Pattern
 MaybeTy→ListTy (PatternTy NothingPattern) = PatternTy []Pattern
 MaybeTy→ListTy (PatternTy pat) = PatternTy pat
 
-mapContext : Context → (Type → Type) → Context
+mapContext : ∀ {n} → Context n → (Type → Type) → Context n
 mapContext ∅ _ = ∅
 mapContext (Γ , x) f = (mapContext Γ f , f x)
 
-update∋PostMap : ∀ {ty Γ f} → Γ ∋ ty → (mapContext Γ f)  ∋ f ty
+update∋PostMap : ∀ {ty n f} {Γ : Context n} → Γ ∋ ty → (mapContext Γ f)  ∋ f ty
 update∋PostMap Z = Z
 update∋PostMap (S l) = S update∋PostMap l
 
-insertTypeAtIdx : (Γ : Context) →  (n : ℕ) → (p : n ≤ length Γ) → (ignoreTy : Type)  → Context
+insertTypeAtIdx : ∀ {l} → (Γ : Context l) → (n : ℕ) → (p : n ≤ l) → (ignoreTy : Type) → Context (suc l)
 insertTypeAtIdx Γ zero _ ty = Γ , ty
 insertTypeAtIdx (Γ , x) (suc n) (s≤s p) ty = insertTypeAtIdx Γ n p ty , x
 
 -- unify with other helper function to generic fun
-update∋PostInsert : ∀ {ty Γ n p iTy} → Γ ∋ ty → insertTypeAtIdx Γ n p iTy ∋ ty
+update∋PostInsert : ∀ {ty l n p iTy} {Γ : Context l} → Γ ∋ ty → insertTypeAtIdx Γ n p iTy ∋ ty
 update∋PostInsert {_} {_} {zero} Z = S Z 
 update∋PostInsert {_} {_} {suc n} {s≤s p} Z = Z
 update∋PostInsert {_} {_} {zero} (S l) = S (S l)
 update∋PostInsert {_} {_} {suc n} {s≤s p} (S l) = S update∋PostInsert l
 
 -- enforce that insertion can only be as large as Γ 
-insertIgnoredType : ∀ {Γ  ty} →  Γ ⊢ ty → {n : ℕ} → {p : n ≤ length Γ} → {ignoreTy : Type} → insertTypeAtIdx Γ n p ignoreTy ⊢ ty
+insertIgnoredType : ∀ {l ty} {Γ : Context l} →  Γ ⊢ ty → {n : ℕ} → {p : n ≤ l} → {ignoreTy : Type} → insertTypeAtIdx Γ n p ignoreTy ⊢ ty
 insertIgnoredType (var x) {zero}  = var (S x)
 insertIgnoredType (var x) {suc n}  = var (update∋PostInsert x)
 insertIgnoredType (ƛ ex) {n} {p}  = ƛ (insertIgnoredType ex {suc n} {s≤s p} )
@@ -68,10 +68,10 @@ insertIgnoredType NothingP   = NothingP
 insertIgnoredType ::P   = ::P
 insertIgnoredType []P   = []P
 
-refactorListH : ∀ {Γ  ty₁} → Γ ⊢ ty₁ → (mapContext Γ MaybeTy→ListTy) ⊢ (MaybeTy→ListTy ty₁)
+refactorListH : ∀ {l ty₁} {Γ : Context l} → Γ ⊢ ty₁ → (mapContext Γ MaybeTy→ListTy) ⊢ (MaybeTy→ListTy ty₁)
 refactorListH (var x) = var (update∋PostMap x)
-refactorListH (ƛ {_} {aTy} {rTy} e) = ƛ (refactorListH e)
-refactorListH { Γ } { ty } (_·_ {_} {aTy} {rTy} e e₁) = _·_ {_} {MaybeTy→ListTy aTy} {MaybeTy→ListTy rTy} (refactorListH e) (refactorListH e₁)
+refactorListH (ƛ {A = aTy} {B = rTy} e) = ƛ (refactorListH e)
+refactorListH { Γ } { ty } (_·_ {A = aTy} {B = rTy} e e₁) = _·_ {A = MaybeTy→ListTy aTy} {B = MaybeTy→ListTy rTy} (refactorListH e) (refactorListH e₁)
 refactorListH (Int x) = Int x
 refactorListH (e + e₁) = refactorListH e + refactorListH e₁
 refactorListH (e - e₁) = refactorListH e - refactorListH e₁
@@ -82,11 +82,11 @@ refactorListH [] = []
 refactorListH (e :: e₁) = refactorListH e :: refactorListH e₁
 refactorListH (Left e) = Left (refactorListH e)
 refactorListH (Right e) = Right (refactorListH e)
-refactorListH (caseM_of_to_or_to_ {_} {A} matchOn nothingP nothingClause justP justClause) = 
+refactorListH (caseM_of_to_or_to_ {A = A} matchOn nothingP nothingClause justP justClause) = 
     caseL refactorListH matchOn of 
         refactorListH nothingP to refactorListH nothingClause 
         or 
-        refactorListH justP to insertIgnoredType (refactorListH justClause) {zero} {z≤n} {ListTy (MaybeTy→ListTy A)}
+        refactorListH justP to insertIgnoredType (refactorListH justClause) {n = zero} {p = z≤n} {ignoreTy = ListTy (MaybeTy→ListTy A)}
 refactorListH (caseL e of e₁ to e₂ or e₃ to e₄) = 
     caseL refactorListH e of 
         refactorListH e₁ to refactorListH e₂ 

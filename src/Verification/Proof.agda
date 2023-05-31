@@ -9,26 +9,11 @@ import Relation.Binary.PropositionalEquality as Eq
 open Eq using (_≡_; refl)
 open import Data.Nat using (ℕ; zero; suc; _<_; _≤_; z≤n; s≤s)
 
-lengthClosEnv : ∀ {aTy rTy} → Value (aTy ⇒ rTy) → ℕ
-lengthClosEnv (ClosV {Γ-clos} nv fd) = length Γ-clos
 
-{-
-sizeMattersProof : 
-    ∀ {Γ aTy rTy} {nv : Env Γ} {fd : Γ ∋ aTy ⇒ rTy} 
-    → (lCl : ℕ) → {lCl ≡ lengthClosEnv (nv fd)} 
-    → (lCtx : ℕ) → {lCtx ≡ length Γ} 
-    → lCl < lCtx
-sizeMattersProof zero zero = {!   !}
-sizeMattersProof zero (suc lCtxP) = {!   !}
-sizeMattersProof (suc lClP) lCtxP = {!   !}
--}
-
-
--- Eventually remove this and prove to agda that this terminates
 {-# TERMINATING #-}
-updateEnv : ∀ {Γ} → Env Γ → Env (mapContext Γ MaybeTy→ListTy)
+updateEnv : {n : ℕ} {Γ : Context n} → Env Γ → Env (mapContext Γ MaybeTy→ListTy)
 
-updateValue : ∀ {ty} → Value ty → Value (MaybeTy→ListTy ty)
+updateValue : {ty : Type} → Value ty → Value (MaybeTy→ListTy ty)
 updateValue NothingV = NilV
 updateValue (JustV v) = ConsV (updateValue v) NilV
 updateValue (IntV x) = IntV x
@@ -38,21 +23,21 @@ updateValue (LeftV v) = LeftV (updateValue v)
 updateValue (RightV v) = RightV (updateValue v)
 updateValue (ClosV  nv fd) = ClosV (updateEnv nv) (refactorListH fd) 
 
-updateEnv {∅} nv = ∅'
-updateEnv {Γ , ty} nv = updateEnv (λ x → nv (S x)) ,' updateValue (nv Z)
+updateEnv {Γ = ∅} nv = ∅'
+updateEnv {Γ = Γ , ty} nv = updateEnv (λ x → nv (S x)) ,' updateValue (nv Z)
 
-insertValAtIdx : ∀ {Γ ty} → (γ : Env Γ) → (n : ℕ) → {p : n ≤ length Γ} → (ignoreVal : Value ty) → Env (insertTypeAtIdx Γ n p ty)
+insertValAtIdx : ∀ {l ty} {Γ : Context l} → (γ : Env Γ) → (n : ℕ) → {p : n ≤ l} → (ignoreVal : Value ty) → Env (insertTypeAtIdx Γ n p ty)
 insertValAtIdx γ zero v = γ ,' v
-insertValAtIdx {Γ , x} γ (suc n) {s≤s p} v = insertValAtIdx (Env-tail γ) n v ,' Env-head γ  
+insertValAtIdx {Γ = Γ , x} γ (suc n) {s≤s p} v = insertValAtIdx (Env-tail γ) n v ,' Env-head γ  
 
-insertIgnoredValClos : ∀ {Γ eTy} → Value eTy → {n : ℕ} → {p : n ≤ length Γ} → Value eTy
-insertIgnoredValClos (ClosV γ body) = {!   !}
-insertIgnoredValClos v = v
+insertIgnoredValClos : ∀ {l eTy iTy} {Γ : Context l} → Value eTy → {n : ℕ} → {p : n ≤ l} → Value iTy → Value eTy
+insertIgnoredValClos {Γ = Γ} (ClosV γ body) {n = n} {p} v = ClosV (insertValAtIdx {Γ = {!  Γ !}} γ n {{!   !}} v) {! insertTypeAtIdx ? ? ? ? !}
+insertIgnoredValClos v _ = v
 
-insertIgnoredVal : ∀ {Γ eTy iTy} {e : Γ ⊢ eTy} {v : Value eTy} {γ : Env Γ} 
+insertIgnoredVal : ∀ {l eTy iTy} {Γ : Context l} {e : Γ ⊢ eTy} {v : Value eTy} {γ : Env Γ} 
     → γ ⊢e e ↓ v 
     → {n : ℕ} 
-    → {p : n ≤ length Γ} 
+    → {p : n ≤ l} 
     → {iVal : Value iTy} 
     → insertValAtIdx γ n {p} iVal ⊢e insertIgnoredType e ↓ {!  insertIgnoredValClos v !}
 insertIgnoredVal (↓var x) {n} {p} {iVal} = {!   !}
@@ -74,8 +59,8 @@ insertIgnoredVal (↓caseMN d d₁) = ↓caseMN (insertIgnoredVal d) (insertIgno
 insertIgnoredVal (↓caseL:: d d₁) = ↓caseL:: (insertIgnoredVal d) (insertIgnoredVal d₁)
 insertIgnoredVal (↓caseL[] d d₁) = ↓caseL[] (insertIgnoredVal d) (insertIgnoredVal d₁) 
 
-verifySemanticEqH : ∀ {Γ ty} {γ : Env Γ} {v : Value ty} {e : Γ ⊢ ty} → γ ⊢e e ↓ v →  updateEnv γ ⊢e refactorListH e ↓ updateValue v
-verifySemanticEqH {Γ} {ty} {γ} {v} (↓var {vΓ} {vγ} {vty} x) = {! ↓var ? !}
+verifySemanticEqH : ∀ {l ty} {Γ : Context l} {γ : Env Γ} {v : Value ty} {e : Γ ⊢ ty} → γ ⊢e e ↓ v →  updateEnv γ ⊢e refactorListH e ↓ updateValue v
+verifySemanticEqH (↓var x) = {! ↓var ? !}
 verifySemanticEqH ↓ƛ = ↓ƛ
 verifySemanticEqH (↓· p p₁ p₂) = ↓· (verifySemanticEqH p) (verifySemanticEqH p₁) (verifySemanticEqH p₂)
 verifySemanticEqH ↓Int = ↓Int

@@ -12,7 +12,7 @@ src: https://plfa.github.io/DeBruijn/
 
 infix  4 _⊢_
 infix  4 _∋_
-infixl 5 [_]_,_
+infixl 5 _,_
 
 infixr 7 _⇒_
 
@@ -52,18 +52,18 @@ data Type : Set where
 
 data Context : ℕ → Set where
     ∅ : Context 0
-    [_]_,_ : (n : ℕ) → Context n → Type → Context (suc n)
+    _,_ : {n : ℕ} → Context n → Type → Context (suc n)
 
 data _∋_ : {n : ℕ} → Context n → Type → Set where
 
   Z : ∀ {A} {n : ℕ} {Γ : Context n}
-      --------- [ n ] Γ , A ∋ A
-    → [ n ] Γ , A ∋ A
+      ---------  Γ , A ∋ A
+    →  Γ , A ∋ A
 
   S_ : ∀ {A B} {n : ℕ} {Γ : Context n}
     → Γ ∋ A
-      --------- [ n ] Γ , B ∋ A
-    → [ n ] Γ , B ∋ A
+      ---------  Γ , B ∋ A
+    →  Γ , B ∋ A
 
 data _⊢_ : {n : ℕ} → Context n → Type → Set where
     var :  ∀ {A n} {Γ : Context n}
@@ -73,7 +73,7 @@ data _⊢_ : {n : ℕ} → Context n → Type → Set where
     
     -- Add fixpoints or try to integrate them with lambdas
     ƛ  : ∀ {A B n} {Γ : Context n}
-        → [ n ] Γ , A ⊢ B
+        →  Γ , A ⊢ B
         ---------
         → Γ ⊢ A ⇒ B 
 
@@ -142,7 +142,7 @@ data _⊢_ : {n : ℕ} → Context n → Type → Set where
         → Γ ⊢ B
         -- case Just x
         → Γ ⊢ PatternTy JustPattern
-        → [ n ] Γ , A ⊢ B
+        →  Γ , A ⊢ B
         -- Result
         → Γ ⊢ B
 
@@ -154,7 +154,7 @@ data _⊢_ : {n : ℕ} → Context n → Type → Set where
         → Γ ⊢ B
         -- case x :: xs
         → Γ ⊢ PatternTy ::Pattern
-        → [ suc n ] ( [ n ] Γ , A) , ListTy A ⊢ B
+        →  Γ , A , ListTy A ⊢ B
         -- Result
         → Γ ⊢ B
 
