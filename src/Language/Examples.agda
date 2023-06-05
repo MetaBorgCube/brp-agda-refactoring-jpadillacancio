@@ -1,4 +1,4 @@
-module Examples where
+module Language.Examples where
 
 open import Typesystem
 open import Data.Integer.Base using (ℤ)

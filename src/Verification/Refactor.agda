@@ -34,9 +34,8 @@ insertTypeAtIdx (Γ , x) (suc n) (s≤s p) ty = insertTypeAtIdx Γ n p ty , x
 
 -- unify with other helper function to generic fun
 update∋PostInsert : ∀ {ty l n p iTy} {Γ : Context l} → Γ ∋ ty → insertTypeAtIdx Γ n p iTy ∋ ty
-update∋PostInsert {_} {_} {zero} Z = S Z 
+update∋PostInsert {_} {_} {zero} l = S l 
 update∋PostInsert {_} {_} {suc n} {s≤s p} Z = Z
-update∋PostInsert {_} {_} {zero} (S l) = S (S l)
 update∋PostInsert {_} {_} {suc n} {s≤s p} (S l) = S update∋PostInsert l
 
 -- enforce that insertion can only be as large as Γ 
@@ -70,8 +69,8 @@ insertIgnoredType []P   = []P
 
 refactorListH : ∀ {l ty₁} {Γ : Context l} → Γ ⊢ ty₁ → (mapContext Γ MaybeTy→ListTy) ⊢ (MaybeTy→ListTy ty₁)
 refactorListH (var x) = var (update∋PostMap x)
-refactorListH (ƛ {A = aTy} {B = rTy} e) = ƛ (refactorListH e)
-refactorListH { Γ } { ty } (_·_ {A = aTy} {B = rTy} e e₁) = _·_ {A = MaybeTy→ListTy aTy} {B = MaybeTy→ListTy rTy} (refactorListH e) (refactorListH e₁)
+refactorListH (ƛ e) = ƛ (refactorListH e)
+refactorListH (_·_ {A = aTy} {B = rTy} e e₁) = _·_ {A = MaybeTy→ListTy aTy} {B = MaybeTy→ListTy rTy} (refactorListH e) (refactorListH e₁)
 refactorListH (Int x) = Int x
 refactorListH (e + e₁) = refactorListH e + refactorListH e₁
 refactorListH (e - e₁) = refactorListH e - refactorListH e₁

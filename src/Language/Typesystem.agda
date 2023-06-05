@@ -183,15 +183,15 @@ data _⊢_ : {n : ℕ} → Context n → Type → Set where
         → Γ ⊢ C
     -}
 
-{-  
-length : Context → ℕ
+length : {n : ℕ} → Context n → ℕ
 length ∅        =  zero
 length (Γ , _)  =  suc (length Γ)
 
-lookup : {Γ : Context} → {n : ℕ} → (p : n < length Γ) → Type
-lookup {(_ , A)} {zero}    (s≤s z≤n)  =  A
-lookup {(Γ , _)} {(suc n)} (s≤s p)    =  lookup p
+lookup : {l : ℕ} {Γ : Context l} → {n : ℕ} → (p : n < length Γ) → Type
+lookup {Γ = (_ , A)} {zero}    (s≤s z≤n)  =  A
+lookup {Γ = (Γ , _)} {(suc n)} (s≤s p)    =  lookup p
 
+{-
 count : ∀ {Γ} → {n : ℕ} → (p : n < length Γ) → Γ ∋ lookup p
 count {_ , _} {zero}    (s≤s z≤n)  =  Z
 count {Γ , _} {(suc n)} (s≤s p)    =  S (count p)
