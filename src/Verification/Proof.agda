@@ -17,7 +17,24 @@ open import Relation.Nullary using (¬_ ; Dec ; yes ; no)
 {-# TERMINATING #-}
 updateEnv : {n : ℕ} {Γ : Context n} → Env Γ → Env (mapContext Γ MaybeTy→ListTy)
 
-updateValue : {ty : Type} → Value ty → Value (MaybeTy→ListTy ty)
+updateValue : ∀ {n} {Γ : Context n} {γ : Env Γ} {ty : Type} {e : Γ ⊢ ty} → (v : Value ty) → {d : γ ⊢e e ↓ v} → Value (MaybeTy→ListTy ty)
+updateValue (IntV x) = IntV x
+updateValue NothingV = NilV
+updateValue {.(suc _)} {.(_ , MaybeTy ty)} {γ} {MaybeTy ty} {var Z} (JustV v) {d} = {! d !}
+updateValue {.(suc _)} {.(_ , _)} {γ} {MaybeTy ty} {var (S x)} (JustV v) {d} = {!   !}
+updateValue {n} {Γ} {γ} {MaybeTy ty} {e · e₁} (JustV v) {↓· d d₁ d₂} = {!   !}
+updateValue {n} {Γ} {γ} {MaybeTy .IntTy} {Just e} (JustV v) {↓Just d} = {!   !}
+updateValue {n} {Γ} {γ} {MaybeTy ty} {caseM e of .NothingP to e₂ or .JustP to e₄} (JustV v) {↓caseMJ d d₁} = ConsV (updateValue {Γ = {!   !}} {γ = {!   !}} {e = {! e₄  !}} v {{!   !}}) {!   !}
+updateValue {n} {Γ} {γ} {MaybeTy ty} {caseM e of .NothingP to e₂ or .JustP to e₄} (JustV v) {↓caseMN d d₁} = {!   !}
+updateValue {n} {Γ} {γ} {MaybeTy ty} {caseL e of .[]P to e₂ or .::P to e₄} (JustV v) {↓caseL:: d d₁} = {!   !}
+updateValue {n} {Γ} {γ} {MaybeTy ty} {caseL e of .[]P to e₂ or .::P to e₄} (JustV v) {↓caseL[] d d₁} = {!   !}
+updateValue (JustV v) = ConsV (updateValue {{!   !}} {{!   !}} {{!   !}} {{!   !}} {{!   !}} v {{!   !}}) NilV
+updateValue NilV = {!   !}
+updateValue (ConsV v v₁) = {!   !}
+updateValue (LeftV v) = {!   !}
+updateValue (RightV v) = {!   !}
+updateValue (ClosV x x₁) = {!   !}
+{-
 updateValue NothingV = NilV
 updateValue (JustV v) = ConsV (updateValue v) NilV
 updateValue (IntV x) = IntV x
@@ -29,11 +46,42 @@ updateValue (RightV v) = RightV (updateValue v)
 -- in the case that it was got from caseL:: then insert ignored val into env and body
 updateValue (ClosV {n} {Γ} γ body) = ClosV (updateEnv γ) (refactorListH body) 
 
-
 updateEnv {zero} {∅} γ = ∅'
 -- construct fake expression that is just a var (so updateValue does not change it)
 updateEnv {suc n} {Γ , _} γ = updateEnv {n} {Γ} (λ x →  γ (S x)) ,' updateValue (γ Z)
+-}
+updateEnv = {!   !}
 
+
+-- _≡ₑ_ : ∀ {aTy rTy} → Value (aTy ⇒ rTy) → Value (MaybeTy→ListTy aTy ⇒ MaybeTy→ListTy rTy) → Set 
+
+data _≡ᵣ_ : ∀ {ty} → Value ty → Value (MaybeTy→ListTy ty) → Set where
+    NothingV≡ᵣNilV : ∀ {v} → NothingV {v} ≡ᵣ NilV
+    JustV≡ᵣConsV : ∀ {ty} {vₒ : Value ty} {vₙ} → vₒ ≡ᵣ vₙ  → JustV vₒ ≡ᵣ ConsV vₙ NilV
+    NilV≡ᵣNilV : ∀ {ty} {v : Value ty} → NilV {ty} ≡ᵣ NilV
+    ConsV≡ᵣConsV : ∀ {ty} {hₒ : Value ty} {tₒ} {hₙ} {tₙ} → hₒ ≡ᵣ hₙ → tₒ ≡ᵣ tₙ → ConsV hₒ tₒ ≡ᵣ ConsV hₙ tₙ
+    LeftV≡ᵣLeftV : ∀ {ty₁ ty₂} {vₒ : Value (EitherTy ty₁ ty₂)} {vₙ} → vₒ ≡ᵣ vₙ  → LeftV {B = ty₂} vₒ ≡ᵣ LeftV vₙ
+    RightV≡ᵣRightV : ∀ {ty₁ ty₂} {vₒ : Value (EitherTy ty₁ ty₂)} {vₙ} → vₒ ≡ᵣ vₙ  → RightV {A = ty₁} vₒ ≡ᵣ RightV vₙ
+    ClosV≡ᵣClosV : ∀ {aTy} {rTy} {γₒ : Env {!   !}} {γₙ : Env {!   !}} { argValₒ : Value aTy} { argValₙ : Value (MaybeTy→ListTy aTy)} {retValₒ : Value rTy} {retValₙ : Value (MaybeTy→ListTy rTy)} {bₒ bₙ} → 
+        {!   !}
+        -- If arguments are refactor-equivalent
+        {argValₒ ≡ᵣ argValₙ} → 
+        -- and the function evaluates to the return value given the argument
+        {(γₒ ,' argValₒ) ⊢e bₒ ↓ retValₒ} → 
+        {(γₙ ,' argValₙ) ⊢e bₙ ↓ retValₙ} →
+        -- then the closures are equivalent if the return values are refactor-equivalent 
+        retValₒ ≡ᵣ retValₙ
+{-
+_≡ₑ_ {aTy} {rTy} (ClosV γₒ bₒ) (ClosV γₙ bₙ) = 
+    ∀ { argValₒ : Value aTy} { argValₙ : Value (MaybeTy→ListTy aTy)} {retValₒ : Value rTy} {retValₙ : Value (MaybeTy→ListTy rTy)} → 
+    -- If arguments are refactor-equivalent
+    {argValₒ ≡ᵣ argValₙ} → 
+    -- and the function evaluates to the return value given the argument
+    {(γₒ ,' argValₒ) ⊢e bₒ ↓ retValₒ} → 
+    {(γₙ ,' argValₙ) ⊢e bₙ ↓ retValₙ} →
+    -- then the closures are equivalent if the return values are refactor-equivalent 
+    retValₒ ≡ᵣ retValₙ
+-}
 insertValAtIdx : ∀ {l ty} {Γ : Context l} → (γ : Env Γ) → (n : ℕ) → {p : n ≤ l} → (ignoreVal : Value ty) → Env (insertTypeAtIdx Γ n p ty)
 insertValAtIdx γ zero v = γ ,' v
 insertValAtIdx {Γ = Γ , x} γ (suc n) {s≤s p} v = insertValAtIdx (Env-tail γ) n v ,' Env-head γ  
@@ -104,16 +152,6 @@ a≤b+a {zero} {b} = z≤n
 a≤b+a {suc a} {zero} = s≤s a≤b+a
 a≤b+a {suc a} {suc b} = s≤s {!   !}
 
-a≤b→a+c≤b+c : ∀ {a b c} → a ≤ b → (a +ₙ c) ≤ (b +ₙ c)
-a≤b→a+c≤b+c z≤n = a≤b+a
-a≤b→a+c≤b+c (s≤s p) = s≤s (a≤b→a+c≤b+c p)
-
-≤z→+≤z+ : ∀ {a b c} → a ≤z b → a +z c ≤z b +z c
-≤z→+≤z+ {a} {b} {ℤ.pos zero} (-≤- n≤m) = -≤- n≤m
-≤z→+≤z+ {a} {b} {ℤ.pos (suc c)} (-≤- n≤m) = {!   !}
-≤z→+≤z+ {a} {b} {ℤ.negsuc c} (-≤- n≤m) = -≤- (s≤s {!   !})
-≤z→+≤z+ -≤+ = {!    !}
-≤z→+≤z+ (+≤+ m≤n) = {!   !}
 
 a≤b→suca≤b : ∀ {a b} → a ≤ b → suc a ≤ b
 a≤b→suca≤b z≤n = {!   !}
@@ -127,14 +165,12 @@ a-b≤c→a≤c+b {_} {suc b} {zero} {s≤s m≤n} a-b≤c = s≤s (a-b≤c→a�
 a-b≤c→a≤c+b {suc a} {suc b} {suc c} {s≤s p} a-b≤c = s≤s (a-b≤c→a≤c+b {a} {suc b} {c} {{! a≤b→suca≤b ?  !}} {!   !})
 
 a≤c+b→a-b≤c : ∀ {a b c} → {p : b ≤ a} → a ≤ c +ₙ b → _-ₙ_ a b {p} ≤ c
-a≤c+b→a-b≤c {a} {p = z≤n} a≤c+b = {!   !}
-a≤c+b→a-b≤c {p = s≤s p} a≤c+b = {!   !}
+a≤c+b→a-b≤c {zero} {p = z≤n} a≤c+b = z≤n
+a≤c+b→a-b≤c {suc a} {p = z≤n} a≤c+b = {!    !}
+a≤c+b→a-b≤c {p = s≤s p} a≤c+b = {! -c   !}
 
 a≤b→a≤c : ∀ {a b c} → a ≤ b → b ≡ c → a ≤ c 
 a≤b→a≤c a≤b refl = a≤b
-
-a-b+b-cancel : ∀ {a b} {p : b ≤ a} → (_-ₙ_ a b {p}) +ₙ b ≡ a
-a-b+b-cancel = {!   !}
 
 insertIgnoredValClos : ∀ {l aTy rTy iTy} {l>0 : l > 0} {Γ : Context l} {γ : Env Γ} {l-clos} {l-clos<l : l-clos < l } {Γ-clos : Context l-clos} {γ-clos : Env Γ-clos} → 
     -- ignored value
@@ -208,8 +244,9 @@ insertIgnoredVal : ∀ {l eTy iTy} {Γ : Context l} {e : Γ ⊢ eTy} {v : Value 
     → insertValAtIdx γ n {p} iVal ⊢e insertIgnoredType e ↓ insertIgnoredValVal {Γ = Γ} {γ = γ} {e = e} v {d = d} {p = p} iVal
 insertIgnoredVal = {!   !}
 
-{-
 verifySemanticEqH : ∀ {l ty} {Γ : Context l} {γ : Env Γ} {v : Value ty} {e : Γ ⊢ ty} → γ ⊢e e ↓ v →  updateEnv γ ⊢e refactorListH e ↓ {!   !}
+verifySemanticEqH = {!   !}
+{-
 verifySemanticEqH (↓var x) = {!  ↓var !}
 verifySemanticEqH ↓ƛ = {!   !}
 verifySemanticEqH (↓· p p₁ p₂) = {!   !}
@@ -230,4 +267,4 @@ verifySemanticEqH (↓caseL[] p p₁) = ↓caseL[] (verifySemanticEqH p) (verify
 
 verifySemanticEq : ∀  {ty} {v : Value ty} {e : ∅ ⊢ ty} → ∅' ⊢e e ↓ v → ∅' ⊢e refactorList e ↓ updateValue v
 verifySemanticEq d = verifySemanticEqH d    
--}
+-} 

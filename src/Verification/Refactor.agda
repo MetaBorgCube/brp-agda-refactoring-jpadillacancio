@@ -34,9 +34,9 @@ insertTypeAtIdx (Γ , x) (suc n) (s≤s p) ty = insertTypeAtIdx Γ n p ty , x
 
 -- unify with other helper function to generic fun
 update∋PostInsert : ∀ {ty l n p iTy} {Γ : Context l} → Γ ∋ ty → insertTypeAtIdx Γ n p iTy ∋ ty
-update∋PostInsert {_} {_} {zero} l = S l 
-update∋PostInsert {_} {_} {suc n} {s≤s p} Z = Z
-update∋PostInsert {_} {_} {suc n} {s≤s p} (S l) = S update∋PostInsert l
+update∋PostInsert {n = zero} l = S l 
+update∋PostInsert {n = suc n} {s≤s p} Z = Z
+update∋PostInsert {n = suc n} {s≤s p} (S l) = S update∋PostInsert l
 
 -- enforce that insertion can only be as large as Γ 
 insertIgnoredType : ∀ {l ty} {Γ : Context l} →  Γ ⊢ ty → {n : ℕ} → {p : n ≤ l} → {ignoreTy : Type} → insertTypeAtIdx Γ n p ignoreTy ⊢ ty
