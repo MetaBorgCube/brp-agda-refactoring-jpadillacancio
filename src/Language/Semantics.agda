@@ -11,7 +11,7 @@ src: https://plfa.github.io/Denotational/
 -}
 
 
-Env : {n : ℕ} → Context n → Set 
+data Env : {n : ℕ} → Context n → Set  
 
 -- Index this over types
 data Value : Type → Set where
@@ -32,29 +32,22 @@ data Value : Type → Set where
 
     ClosV : ∀ {n} {Γ : Context n} {argTy retTy} → Env Γ →  Γ , argTy ⊢ retTy → Value (argTy ⇒ retTy)
 
-Env Γ =  ∀ {t : Type} (x : Γ ∋ t ) → Value t
+data Env where
+    ∅' : Env ∅
+    _,'_ : ∀ {l ty} {Γ : Context l} → Env Γ → (v : Value ty) → Env (Γ , ty)
 
-
-∅' : Env ∅
-∅' ()
-
-_,'_ : ∀ {n ty} {Γ : Context n} → Env Γ → Value ty → Env ( Γ , ty)
-(γ ,' c) Z = c
-(γ ,' c) (S x) = γ x
-
-Env-tail : ∀ {n ty} {Γ : Context n} → Env ( Γ , ty) → Env Γ
-Env-tail γ x = γ (S x)
-
-Env-head : ∀ {n ty} {Γ : Context n} → Env ( Γ , ty) → Value ty
-Env-head γ = γ Z
-
+-- Maybe cite jeoren? 
+v-lookup : ∀ {l ty} {Γ : Context l} → Env Γ → Γ ∋ ty → Value ty
+v-lookup ∅' ()
+v-lookup (γ ,' v) Z = v
+v-lookup (γ ,' v) (S l) = v-lookup γ l
 
 infix 3 _⊢e_↓_
 
 data _⊢e_↓_ : ∀ {n} {Γ : Context n} {ty : Type} → Env Γ → (Γ ⊢ ty ) → Value ty → Set where
     ↓var : ∀ {n} {Γ : Context n} {γ : Env Γ} {ty : Type} -- {x : Γ ∋ ty}
         → (x : Γ ∋ ty)
-        → γ ⊢e var x ↓ γ x
+        → γ ⊢e var x ↓ v-lookup γ x
     
     ↓ƛ : ∀ {n} {Γ : Context n} {γ : Env Γ} {argTy retTy : Type} {body : Γ , argTy ⊢ retTy }
         → γ ⊢e ƛ body ↓ ClosV γ body
@@ -199,4 +192,3 @@ data _⊢e_↓_ : ∀ {n} {Γ : Context n} {ty : Type} → Env Γ → (Γ ⊢ ty
         -- Result
         → Γ ⊢ C
     -}    
- 
