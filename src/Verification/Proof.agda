@@ -13,7 +13,7 @@ open import Data.Product using (_×_ ; proj₁ ; proj₂) renaming (_,_ to ⟨_,
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Relation.Nullary using (¬_ ; Dec ; yes ; no)
 open import Data.Empty using (⊥ ; ⊥-elim)
-open import Data.Unit using (⊤)
+open import Data.Unit using (⊤ ; tt)
 
 -- {-# TERMINATING #-}
 updateEnv : {n : ℕ} {Γ : Context n} → Env Γ → Env (mapContext Γ MaybeTy→ListTy)
@@ -45,6 +45,12 @@ ClosV {argTy = argTy} {retTy} γₒ bₒ ≡vᵣ ClosV γₙ bₙ =
     (γₙ ,' argVₙ) ⊢e bₙ ↓ retVₙ → 
     retVₒ ≡vᵣ retVₙ 
 _ ≡vᵣ _ = ⊥
+
+-- plfa book equality chapter
+congM :  ∀ {ty} 
+  → ty ≡ MaybeTy→ListTy ty 
+  → MaybeTy→ListTy ty ≡ MaybeTy→ListTy (MaybeTy→ListTy ty)
+congM e = {! e !}
 
 _≡vₚᵣₑ_ : ∀ {ty} → Value ty → Value ty → Set
 IntV x ≡vₚᵣₑ IntV x₁ = x ≡ x₁
@@ -248,16 +254,11 @@ v-lookupγₒx≡vᵣv-lookupγₙxₙ :
 v-lookupγₒx≡vᵣv-lookupγₙxₙ (γₒ ,' v) Z (γₙ ,' v₁) ⟨ _ , v≡vᵣv₁ ⟩ = v≡vᵣv₁
 v-lookupγₒx≡vᵣv-lookupγₙxₙ (γₒ ,' v) (S x) (γₙ ,' v₁) ⟨ γₒ≡eᵣγₙ , _ ⟩ = v-lookupγₒx≡vᵣv-lookupγₙxₙ γₒ x γₙ γₒ≡eᵣγₙ
 
--- trans rights :D
-≡vᵣ-trans : ∀ {ty} {v₀ : Value ty} {v₁ v₂ : Value (MaybeTy→ListTy ty)} → 
-    {_ : MaybeTy→ListTy ty ≡ MaybeTy→ListTy (MaybeTy→ListTy ty)} → 
-    v₀ ≡vᵣ v₁ → 
-    {! v₁ ≡vᵣ v₂ →
-    ?  !} --   v₀ ≡vᵣ v₂
-≡vᵣ-trans = {!   !}
+congV : ∀ {ty} → Value (MaybeTy→ListTy ty) → Value (MaybeTy→ListTy (MaybeTy→ListTy ty))
+congV = {! -c   !}
 
 ≡vₚᵣₑ×≡vᵣ→≡vᵣ : ∀ {ty} {lₒ lₙ : Value ty} {r : Value (MaybeTy→ListTy ty)} → lₒ ≡vₚᵣₑ lₙ → lₙ ≡vᵣ r → lₒ ≡vᵣ r
-≡vₚᵣₑ×≡vᵣ→≡vᵣ {ty} lₒ≡vₚᵣₑlₙ lₙ≡vᵣr = {!   !}
+≡vₚᵣₑ×≡vᵣ→≡vᵣ {ty} {lₒ} {lₙ} {r} lₒ≡vₚᵣₑlₙ lₙ≡vᵣr = {!   !}
 
 
 
@@ -268,48 +269,39 @@ verifySemanticEqH :
     (γₒ≡eᵣγₙ : γₒ ≡eᵣ γₙ) → 
     γₙ ⊢e refactorListH e ↓ vₙ → 
     vₒ ≡vᵣ vₙ
-{-
-insertionProofConversion : ∀ {} → 
-     (γ ,' iVal) ⊢e insertIgnoredType (refactorListH justClause) ↓ vₙ →
-     (γ) ⊢e refactorListH justClause ↓ vₙ
-insertionProofConversion = {!   !}
--}
+-- Var
+verifySemanticEqH {γₒ = γₒ} (↓var x) γₙ γₒ≡eᵣγₙ (↓var .(update∋PostMap x)) = v-lookupγₒx≡vᵣv-lookupγₙxₙ γₒ x γₙ γₒ≡eᵣγₙ
 
+-- Function + application
+verifySemanticEqH ↓ƛ γₙ γₒ≡eᵣγₙ ↓ƛ {argVₙ = argVₙ} {argVₒ≡vᵣargV} ↓clₒ ↓clₙ = verifySemanticEqH ↓clₒ (γₙ ,' argVₙ) ⟨ γₒ≡eᵣγₙ , argVₒ≡vᵣargV ⟩ ↓clₙ 
+verifySemanticEqH (↓· ↓ƛₒ ↓aₒ ↓rₒ) γₙ γₒ≡eᵣγₙ (↓· ↓ƛₙ ↓aₙ ↓rₙ) = (verifySemanticEqH ↓ƛₒ γₙ γₒ≡eᵣγₙ ↓ƛₙ) {argVₒ≡vᵣargV = verifySemanticEqH ↓aₒ γₙ γₒ≡eᵣγₙ ↓aₙ} ↓rₒ ↓rₙ
 
-
-verifySemanticEqH {γₒ = γₒ} (↓var x) γₙ γₒ≡eᵣγₙ (↓var .(update∋PostMap x)) = 
-    v-lookupγₒx≡vᵣv-lookupγₙxₙ γₒ x γₙ γₒ≡eᵣγₙ
-verifySemanticEqH ↓ƛ γₙ γₒ≡eᵣγₙ ↓ƛ {argVₙ = argVₙ} {argVₒ≡vᵣargV} ↓clₒ ↓clₙ = 
-    verifySemanticEqH ↓clₒ (γₙ ,' argVₙ) ⟨ γₒ≡eᵣγₙ , argVₒ≡vᵣargV ⟩ ↓clₙ 
-verifySemanticEqH (↓· ↓ƛₒ ↓aₒ ↓rₒ) γₙ γₒ≡eᵣγₙ (↓· ↓ƛₙ ↓aₙ ↓rₙ) =  
-    (verifySemanticEqH ↓ƛₒ γₙ γₒ≡eᵣγₙ ↓ƛₙ) {argVₒ≡vᵣargV = verifySemanticEqH ↓aₒ γₙ γₒ≡eᵣγₙ ↓aₙ} ↓rₒ ↓rₙ
 -- Integer related proofs
 verifySemanticEqH ↓Int γₙ γₒ≡eᵣγₙ ↓Int = refl
-verifySemanticEqH (↓+ dₒ dₒ₁) γₙ γₒ≡eᵣγₙ (↓+ dₙ dₙ₁) = 
-    i+zj≡i₁+zj₁ (verifySemanticEqH dₒ γₙ γₒ≡eᵣγₙ dₙ) (verifySemanticEqH dₒ₁ γₙ γₒ≡eᵣγₙ dₙ₁)
-verifySemanticEqH (↓- dₒ dₒ₁) γₙ γₒ≡eᵣγₙ (↓- dₙ dₙ₁) = 
-    i-zj≡i₁-zj₁ (verifySemanticEqH dₒ γₙ γₒ≡eᵣγₙ dₙ) (verifySemanticEqH dₒ₁ γₙ γₒ≡eᵣγₙ dₙ₁)
-verifySemanticEqH (↓* dₒ dₒ₁) γₙ γₒ≡eᵣγₙ (↓* dₙ dₙ₁) = 
-    i*zj≡i₁*zj₁ (verifySemanticEqH dₒ γₙ γₒ≡eᵣγₙ dₙ) (verifySemanticEqH dₒ₁ γₙ γₒ≡eᵣγₙ dₙ₁)
+verifySemanticEqH (↓+ lₒ rₒ) γₙ γₒ≡eᵣγₙ (↓+ lₙ rₙ) = i+zj≡i₁+zj₁ (verifySemanticEqH lₒ γₙ γₒ≡eᵣγₙ lₙ) (verifySemanticEqH rₒ γₙ γₒ≡eᵣγₙ rₙ)
+verifySemanticEqH (↓- lₒ rₒ) γₙ γₒ≡eᵣγₙ (↓- lₙ rₙ) = i-zj≡i₁-zj₁ (verifySemanticEqH lₒ γₙ γₒ≡eᵣγₙ lₙ) (verifySemanticEqH rₒ γₙ γₒ≡eᵣγₙ rₙ)
+verifySemanticEqH (↓* lₒ rₒ) γₙ γₒ≡eᵣγₙ (↓* lₙ rₙ) = i*zj≡i₁*zj₁ (verifySemanticEqH lₒ γₙ γₒ≡eᵣγₙ lₙ) (verifySemanticEqH rₒ γₙ γₒ≡eᵣγₙ rₙ)
+
 -- Maybe
-verifySemanticEqH ↓Nothing γₙ γₒ≡eᵣγₙ ↓[] = ⊤.tt
+verifySemanticEqH ↓Nothing γₙ γₒ≡eᵣγₙ ↓[] = tt
 verifySemanticEqH (↓Just dₒ) γₙ γₒ≡eᵣγₙ (↓:: dₙ ↓[]) = ⟨ verifySemanticEqH dₒ γₙ γₒ≡eᵣγₙ dₙ , refl ⟩ 
+
 -- List
-verifySemanticEqH ↓[] γₙ γₒ≡eᵣγₙ ↓[] = ⊤.tt
-verifySemanticEqH (↓:: dₒ dₒ₁) γₙ γₒ≡eᵣγₙ (↓:: dₙ dₙ₁) = ⟨ verifySemanticEqH dₒ γₙ γₒ≡eᵣγₙ dₙ , verifySemanticEqH dₒ₁ γₙ γₒ≡eᵣγₙ dₙ₁ ⟩
+verifySemanticEqH ↓[] γₙ γₒ≡eᵣγₙ ↓[] = tt
+verifySemanticEqH (↓:: hₒ tₒ) γₙ γₒ≡eᵣγₙ (↓:: hₙ tₙ) = ⟨ verifySemanticEqH hₒ γₙ γₒ≡eᵣγₙ hₙ , verifySemanticEqH tₒ γₙ γₒ≡eᵣγₙ tₙ ⟩
+
 -- Either
 verifySemanticEqH (↓Left dₒ) γₙ γₒ≡eᵣγₙ (↓Left dₙ) = verifySemanticEqH dₒ γₙ γₒ≡eᵣγₙ dₙ
 verifySemanticEqH (↓Right dₒ) γₙ γₒ≡eᵣγₙ (↓Right dₙ) = verifySemanticEqH dₒ γₙ γₒ≡eᵣγₙ dₙ
--- case statements
-verifySemanticEqH {e = e} (↓caseMJ dₒ dₒ₁) γₙ γₒ≡eᵣγₙ (↓caseL:: {hVal = hVal} {tVal} dₙ dₙ₁) =  
-    ≡vₚᵣₑ×≡vᵣ→≡vᵣ {!   !} (verifySemanticEqH (insertIgnoredVal dₒ₁) (insertValAtIdx (γₙ ,' {!   !}) 0 {!   !}) {!   !} {!  dₙ₁ !})
-    -- verifySemanticEqH dₒ₁ (γₙ ,' hVal) ⟨ γₒ≡eᵣγₙ , proj₁ (verifySemanticEqH dₒ γₙ γₒ≡eᵣγₙ dₙ) ⟩ {! dₙ₁  !}
-verifySemanticEqH (↓caseMN dₒ dₒ₁) γₙ γₒ≡eᵣγₙ (↓caseL[] dₙ dₙ₁) = verifySemanticEqH dₒ₁ γₙ γₒ≡eᵣγₙ dₙ₁
-verifySemanticEqH (↓caseL:: {hVal = hValₒ} {tValₒ} dₒ dₒ₁) γₙ γₒ≡eᵣγₙ (↓caseL:: {hVal = hValₙ} {tValₙ} dₙ dₙ₁) = 
-    verifySemanticEqH dₒ₁ ((γₙ ,' hValₙ) ,' tValₙ) ⟨ ⟨ γₒ≡eᵣγₙ , proj₁ hValₒ≡hValₙ×tValₒ≡tValₙ ⟩ , proj₂ hValₒ≡hValₙ×tValₒ≡tValₙ ⟩ dₙ₁ 
+
+-- Case statements
+verifySemanticEqH  {vₒ = vₒ} {vₙ = vₙ} {e = e} (↓caseMJ dₒ dₒ₁) γₙ γₒ≡eᵣγₙ (↓caseL:: {hVal = hVal} {tVal} dₙ dₙ₁) = ≡vₚᵣₑ×≡vᵣ→≡vᵣ {lₒ = vₒ} {r = vₙ} {!   !} (verifySemanticEqH (insertIgnoredVal dₒ₁ {n = 0} {iVal = NilV}) (insertValAtIdx (γₙ ,' hVal) 0 NilV) ⟨ ⟨ γₒ≡eᵣγₙ , (proj₁ (verifySemanticEqH dₒ γₙ γₒ≡eᵣγₙ dₙ)) ⟩ , tt ⟩ {!  dₙ₁ !})
+verifySemanticEqH (↓caseMN _ dₒ) γₙ γₒ≡eᵣγₙ (↓caseL[] _ dₙ) = verifySemanticEqH dₒ γₙ γₒ≡eᵣγₙ dₙ
+verifySemanticEqH (↓caseL:: {hVal = hValₒ} {tValₒ} mₒ ::Cₒ) γₙ γₒ≡eᵣγₙ (↓caseL:: {hVal = hValₙ} {tValₙ} mₙ ::Cₙ) = verifySemanticEqH ::Cₒ ((γₙ ,' hValₙ) ,' tValₙ) ⟨ ⟨ γₒ≡eᵣγₙ , proj₁ hValₒ≡hValₙ×tValₒ≡tValₙ ⟩ , proj₂ hValₒ≡hValₙ×tValₒ≡tValₙ ⟩ ::Cₙ 
     where 
-        hValₒ≡hValₙ×tValₒ≡tValₙ = verifySemanticEqH dₒ γₙ γₒ≡eᵣγₙ dₙ
+        hValₒ≡hValₙ×tValₒ≡tValₙ = verifySemanticEqH mₒ γₙ γₒ≡eᵣγₙ mₙ
 verifySemanticEqH (↓caseL[] dₒ dₒ₁) γₙ γₒ≡eᵣγₙ (↓caseL[] dₙ dₙ₁) = verifySemanticEqH dₒ₁ γₙ γₒ≡eᵣγₙ dₙ₁
+
 -- absurd case statements
 verifySemanticEqH (↓caseL:: {hVal = hValₒ} {tValₒ}  dₒ dₒ₁) γₙ γₒ≡eᵣγₙ (↓caseL[] dₙ dₙ₁) =  ⊥-elim (verifySemanticEqH dₒ γₙ γₒ≡eᵣγₙ dₙ) 
 verifySemanticEqH (↓caseL[] dₒ dₒ₁) γₙ γₒ≡eᵣγₙ (↓caseL:: dₙ dₙ₁) = ⊥-elim (verifySemanticEqH dₒ γₙ γₒ≡eᵣγₙ dₙ)
@@ -317,4 +309,4 @@ verifySemanticEqH (↓caseMJ {val = valₒ} dₒ dₒ₁) γₙ γₒ≡eᵣγ�
 verifySemanticEqH (↓caseMN dₒ dₒ₁) γₙ γₒ≡eᵣγₙ (↓caseL:: dₙ dₙ₁) = ⊥-elim (verifySemanticEqH dₒ γₙ γₒ≡eᵣγₙ dₙ)
 
 verifySemanticEq : ∀  {ty} {vₒ : Value ty} {vₙ : Value (MaybeTy→ListTy ty)} {e : ∅ ⊢ ty} → ∅' ⊢e e ↓ vₒ → ∅' ⊢e refactorList e ↓ vₙ → vₒ ≡vᵣ vₙ
-verifySemanticEq dₒ dₙ = verifySemanticEqH dₒ ∅' ⊤.tt dₙ         
+verifySemanticEq dₒ dₙ = verifySemanticEqH dₒ ∅' tt dₙ          

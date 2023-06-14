@@ -38,7 +38,6 @@ data Env where
 
 -- Maybe cite jeoren? 
 v-lookup : ∀ {l ty} {Γ : Context l} → Env Γ → Γ ∋ ty → Value ty
-v-lookup ∅' ()
 v-lookup (γ ,' v) Z = v
 v-lookup (γ ,' v) (S l) = v-lookup γ l
 
@@ -54,9 +53,9 @@ data _⊢e_↓_ : ∀ {n} {Γ : Context n} {ty : Type} → Env Γ → (Γ ⊢ ty
 
     -- Maybe I can already enforce / declare context size here?
     ↓· : ∀ {n m} {Γ : Context n} {Γ-clos : Context m} {γ : Env Γ} {γ-clos : Env Γ-clos} {argTy retTy : Type} {arg : Γ ⊢ argTy} {argVal : Value argTy}  {body : Γ-clos , argTy ⊢ retTy } {fun : Γ ⊢ argTy ⇒ retTy} {res}
-        -- evaluate to function
+        -- evaluate function
         → γ ⊢e fun ↓ ClosV γ-clos body
-        -- eValue ? body under extended closure environment
+        -- evaluate argument
         → γ ⊢e arg ↓ argVal
         -- evaluate body, extended by argument
         → γ-clos ,' argVal ⊢e body ↓ res

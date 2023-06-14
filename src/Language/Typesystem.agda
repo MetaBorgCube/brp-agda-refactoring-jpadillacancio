@@ -115,14 +115,6 @@ data _⊢_ : {n : ℕ} → Context n → Type → Set where
         → Γ ⊢ A
         → Γ ⊢ ListTy A
         → Γ ⊢ ListTy A
-    {-
-    head : ∀ {A n} {Γ : Context n}
-        → Γ ⊢ ListTy A
-        → Γ ⊢ A
-    tail : ∀ {Γ A}
-        → Γ ⊢ ListTy A
-        → Γ ⊢ ListTy A
-    -}
       
     -- EitherTy
     Left : ∀ {A B n} {Γ : Context n}
