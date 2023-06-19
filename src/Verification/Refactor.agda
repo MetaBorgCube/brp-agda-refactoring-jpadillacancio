@@ -10,91 +10,57 @@ open import Data.Product using (_×_) renaming (_,_ to ⟨_,_⟩)
 open import Relation.Nullary using (¬_)
 open import Data.Nat using (ℕ; zero; suc; _≤_; _≤?_; z≤n; s≤s)
 
+private 
+    variable
+        Γ : Context
+
+        ty : Type
+
+        f : Type → Type 
+
 MaybeTy→ListTy : Type → Type
 MaybeTy→ListTy (MaybeTy t) = ListTy (MaybeTy→ListTy t)
 MaybeTy→ListTy IntTy = IntTy
 MaybeTy→ListTy (ty₁ ⇒ ty₂) = MaybeTy→ListTy ty₁ ⇒ MaybeTy→ListTy ty₂
 MaybeTy→ListTy (ListTy ty₁) = ListTy (MaybeTy→ListTy ty₁)
-MaybeTy→ListTy (EitherTy ty₁ ty₂) = EitherTy (MaybeTy→ListTy ty₁) (MaybeTy→ListTy ty₂)
 MaybeTy→ListTy (PatternTy JustPattern) = PatternTy ::Pattern
 MaybeTy→ListTy (PatternTy NothingPattern) = PatternTy []Pattern
 MaybeTy→ListTy (PatternTy pat) = PatternTy pat
 
-mapContext : ∀ {n} → Context n → (Type → Type) → Context n
-mapContext ∅ _ = ∅
-mapContext (Γ , x) f = (mapContext Γ f , f x)
+data Extend_Under_ : Context → (Type → Type) → Set where
+    eo-root : Extend ∅ Under f
+    eo-elem : Extend Γ Under f → Extend (Γ , ty) Under  f
+    eo-pad : Type → Extend Γ Under f → Extend Γ Under f
 
-update∋PostMap : ∀ {ty n f} {Γ : Context n} → Γ ∋ ty → (mapContext Γ f)  ∋ f ty
-update∋PostMap Z = Z
-update∋PostMap (S l) = S update∋PostMap l
+constructRefContext : Extend Γ Under f → Context
+constructRefContext (eo-root) = ∅
+constructRefContext (eo-elem {f = f} {ty = ty} ev) = constructRefContext ev , f ty
+constructRefContext (eo-pad {f = f} ty ev) = constructRefContext ev , f ty
 
-insertTypeAtIdx : ∀ {l} → (Γ : Context l) → (n : ℕ) → (p : n ≤ l) → (ignoreTy : Type) → Context (suc l)
-insertTypeAtIdx Γ zero _ ty = Γ , ty
-insertTypeAtIdx (Γ , x) (suc n) (s≤s p) ty = insertTypeAtIdx Γ n p ty , x
+update∋PostRef : (ev : Extend Γ Under MaybeTy→ListTy) → Γ ∋ ty → (constructRefContext ev) ∋ MaybeTy→ListTy ty  
+update∋PostRef eo-root ()
+update∋PostRef (eo-elem ev)  Z = Z
+update∋PostRef (eo-elem ev)  (S x) = S (update∋PostRef ev x)
+update∋PostRef (eo-pad t ev) x = S (update∋PostRef ev x)
 
--- unify with other helper function to generic fun
-update∋PostInsert : ∀ {ty l n p iTy} {Γ : Context l} → Γ ∋ ty → insertTypeAtIdx Γ n p iTy ∋ ty
-update∋PostInsert {n = zero} l = S l 
-update∋PostInsert {n = suc n} {s≤s p} Z = Z
-update∋PostInsert {n = suc n} {s≤s p} (S l) = S update∋PostInsert l
+refactorListJH : Γ ⊢ ty → (ev : Extend Γ Under MaybeTy→ListTy) → (constructRefContext ev)  ⊢ MaybeTy→ListTy ty
+refactorListJH (var x) ev = var (update∋PostRef ev x)
+refactorListJH (ƛ t) ev = ƛ (refactorListJH t (eo-elem ev))
+refactorListJH (t · t₁) ev = refactorListJH t ev · refactorListJH t₁ ev
+refactorListJH (Int x) ev = Int x
+refactorListJH (t + t₁) ev = refactorListJH t ev + refactorListJH t₁ ev
+refactorListJH (t - t₁) ev = refactorListJH t ev - refactorListJH t₁ ev
+refactorListJH (t * t₁) ev = refactorListJH t ev * refactorListJH t₁ ev
+refactorListJH Nothing ev = []
+refactorListJH (Just t) ev = refactorListJH t ev :: []
+refactorListJH [] ev = []
+refactorListJH (t :: t₁) ev = refactorListJH t ev :: refactorListJH t₁ ev
+refactorListJH (caseM m of nP to nC or jP to jC) ev = caseL refactorListJH m ev of refactorListJH nP ev to refactorListJH nC ev or refactorListJH jP ev to refactorListJH jC (eo-pad (ListTy _) (eo-elem ev))
+refactorListJH (caseL m of []Pat to []C or ::Pat to ::C) ev = caseL refactorListJH m ev of refactorListJH []Pat ev to refactorListJH []C ev or refactorListJH ::Pat ev to refactorListJH ::C (eo-elem (eo-elem ev))
+refactorListJH JustP ev = ::P
+refactorListJH NothingP ev = []P
+refactorListJH ::P ev = ::P
+refactorListJH []P ev = []P
 
--- enforce that insertion can only be as large as Γ 
-insertIgnoredType : ∀ {l ty} {Γ : Context l} →  Γ ⊢ ty → {n : ℕ} → {p : n ≤ l} → {ignoreTy : Type} → insertTypeAtIdx Γ n p ignoreTy ⊢ ty
-insertIgnoredType (var x) {zero}  = var (S x)
-insertIgnoredType (var x) {suc n}  = var (update∋PostInsert x)
-insertIgnoredType (ƛ ex) {n} {p}  = ƛ (insertIgnoredType ex {suc n} {s≤s p} )
-insertIgnoredType (ex · ex₁)  = insertIgnoredType ex  · insertIgnoredType ex₁ 
-insertIgnoredType (Int x)  = Int x
-insertIgnoredType (ex + ex₁)  = insertIgnoredType ex  + insertIgnoredType ex₁ 
-insertIgnoredType (ex - ex₁)  = insertIgnoredType ex  - insertIgnoredType ex₁ 
-insertIgnoredType (ex * ex₁)  = insertIgnoredType ex  * insertIgnoredType ex₁ 
-insertIgnoredType Nothing  = Nothing
-insertIgnoredType (Just ex)  = Just (insertIgnoredType ex )
-insertIgnoredType []  = []
-insertIgnoredType (ex :: ex₁)  = insertIgnoredType ex  :: insertIgnoredType ex₁ 
-insertIgnoredType (Left ex)  = Left (insertIgnoredType ex )
-insertIgnoredType (Right ex)  = Right (insertIgnoredType ex )
-insertIgnoredType (caseM ex of ex₁ to ex₂ or ex₃ to ex₄) {n} {p}  = caseM insertIgnoredType ex  of 
-    insertIgnoredType ex₁  to insertIgnoredType ex₂  
-    or 
-    insertIgnoredType ex₃  to insertIgnoredType ex₄ {suc n} {s≤s p} 
-insertIgnoredType (caseL ex of ex₁ to ex₂ or ex₃ to ex₄) {n} {p}  = caseL insertIgnoredType ex  of 
-    insertIgnoredType ex₁  to insertIgnoredType ex₂  
-    or 
-    insertIgnoredType ex₃  to insertIgnoredType ex₄ {suc (suc n)} {s≤s (s≤s p)} 
-insertIgnoredType JustP  = JustP
-insertIgnoredType NothingP   = NothingP
-insertIgnoredType ::P   = ::P
-insertIgnoredType []P   = []P
-
-refactorListH : ∀ {l ty₁} {Γ : Context l} → Γ ⊢ ty₁ → (mapContext Γ MaybeTy→ListTy) ⊢ (MaybeTy→ListTy ty₁)
-refactorListH (var x) = var (update∋PostMap x)
-refactorListH (ƛ e) = ƛ (refactorListH e)
-refactorListH (_·_ {A = aTy} {B = rTy} e e₁) = _·_ {A = MaybeTy→ListTy aTy} {B = MaybeTy→ListTy rTy} (refactorListH e) (refactorListH e₁)
-refactorListH (Int x) = Int x
-refactorListH (e + e₁) = refactorListH e + refactorListH e₁
-refactorListH (e - e₁) = refactorListH e - refactorListH e₁
-refactorListH (e * e₁) = refactorListH e * refactorListH e₁
-refactorListH Nothing = []
-refactorListH (Just e) = refactorListH e :: []
-refactorListH [] = []
-refactorListH (e :: e₁) = refactorListH e :: refactorListH e₁
-refactorListH (Left e) = Left (refactorListH e)
-refactorListH (Right e) = Right (refactorListH e)
-refactorListH (caseM_of_to_or_to_ {A = A} matchOn nothingP nothingClause justP justClause) = 
-    caseL refactorListH matchOn of 
-        refactorListH nothingP to refactorListH nothingClause 
-        or 
-        refactorListH justP to insertIgnoredType (refactorListH justClause) {n = zero} {p = z≤n} {ignoreTy = ListTy (MaybeTy→ListTy A)}
-refactorListH (caseL e of e₁ to e₂ or e₃ to e₄) = 
-    caseL refactorListH e of 
-        refactorListH e₁ to refactorListH e₂ 
-        or 
-        refactorListH e₃ to refactorListH e₄
-refactorListH JustP = ::P
-refactorListH NothingP = []P
-refactorListH ::P = ::P
-refactorListH []P = []P
-
-refactorList : ∀ {ty₁} → ∅ ⊢ ty₁ → ∅ ⊢ (MaybeTy→ListTy ty₁)
-refactorList term = refactorListH term  
+refactorListJ : ∅ ⊢ ty → (ev : Extend ∅ Under MaybeTy→ListTy) → (constructRefContext ev) ⊢ MaybeTy→ListTy ty
+refactorListJ = refactorListJH

@@ -17,12 +17,8 @@ infixl 5 _,_
 infixr 7 _⇒_
 
 infix  5 ƛ
--- infix  5 μ_
 infixl 7 _·_
--- infix  8 `suc_
--- infix  9 `_
 infix  9 S_
--- infix  9 #_
 
 
 data Pattern : Set where
@@ -36,9 +32,6 @@ data Pattern : Set where
     ::Pattern : Pattern 
     []Pattern : Pattern
 
-    LeftPattern : Pattern
-    RightPattern : Pattern
-
 data Type : Set where
     -- Base types
     IntTy : Type
@@ -46,87 +39,79 @@ data Type : Set where
     _⇒_ : Type → Type → Type
     MaybeTy : Type → Type
     ListTy : Type → Type
-    EitherTy : Type → Type → Type  
+    -- EitherTy : Type → Type → Type  
     
     PatternTy : Pattern → Type
 
-data Context : ℕ → Set where
-    ∅ : Context 0
-    _,_ : {n : ℕ} → Context n → Type → Context (suc n)
+data Context : Set where
+    ∅ : Context
+    _,_ : Context → Type → Context
 
-data _∋_ : {n : ℕ} → Context n → Type → Set where
+data _∋_ : Context → Type → Set where
 
-  Z : ∀ {A} {n : ℕ} {Γ : Context n}
+  Z : ∀ {A} {Γ : Context}
       ---------  Γ , A ∋ A
     →  Γ , A ∋ A
 
-  S_ : ∀ {A B} {n : ℕ} {Γ : Context n}
+  S_ : ∀ {A B} {Γ : Context}
     → Γ ∋ A
       ---------  Γ , B ∋ A
     →  Γ , B ∋ A
 
-data _⊢_ : {n : ℕ} → Context n → Type → Set where
-    var :  ∀ {A n} {Γ : Context n}
+data _⊢_ : Context → Type → Set where
+    var :  ∀ {A} {Γ : Context}
         → Γ ∋ A
         -----
         → Γ ⊢ A 
     
     -- Add fixpoints or try to integrate them with lambdas
-    ƛ  : ∀ {A B n} {Γ : Context n}
+    ƛ  : ∀ {A B} {Γ : Context}
         →  Γ , A ⊢ B
         ---------
         → Γ ⊢ A ⇒ B 
 
-    _·_ : ∀ {A B n} {Γ : Context n}
+    _·_ : ∀ {A B} {Γ : Context}
         → Γ ⊢ A ⇒ B
         → Γ ⊢ A
         ---------
         → Γ ⊢ B
 
     -- Int and Int operations
-    Int_ : ∀ {n} {Γ : Context n}
+    Int_ : ∀ {Γ : Context}
         → ℤ
         → Γ ⊢ IntTy
-    _+_ : ∀ {n} {Γ : Context n}
+    _+_ : ∀ {Γ : Context}
         → Γ ⊢ IntTy
         → Γ ⊢ IntTy
         → Γ ⊢ IntTy
-    _-_ : ∀ {n} {Γ : Context n}
+    _-_ : ∀ {Γ : Context}
         → Γ ⊢ IntTy
         → Γ ⊢ IntTy
         → Γ ⊢ IntTy
-    _*_ : ∀ {n} {Γ : Context n}
+    _*_ : ∀ {Γ : Context}
         → Γ ⊢ IntTy
         → Γ ⊢ IntTy
         → Γ ⊢ IntTy
 
 
     -- MaybeTy
-    Nothing : ∀ {A n} {Γ : Context n}
+    Nothing : ∀ {A} {Γ : Context}
         → Γ ⊢ MaybeTy A
-    Just : ∀ {A n} {Γ : Context n}
+    Just : ∀ {A} {Γ : Context}
         → Γ ⊢ A
         → Γ ⊢ MaybeTy A
 
     -- ListTy
-    [] :  ∀ {A n} {Γ : Context n}
+    [] :  ∀ {A} {Γ : Context}
         → Γ ⊢ ListTy A
-    _::_ : ∀ {A n} {Γ : Context n}
+    _::_ : ∀ {A} {Γ : Context}
         → Γ ⊢ A
         → Γ ⊢ ListTy A
         → Γ ⊢ ListTy A
       
-    -- EitherTy
-    Left : ∀ {A B n} {Γ : Context n}
-        → Γ ⊢ A
-        → Γ ⊢ EitherTy A B
-    Right : ∀ {A B n} {Γ : Context n}
-        → Γ ⊢ A
-        → Γ ⊢ EitherTy A B
-
-    -- For now only support pattern matching on ListTy/EitherTy/MaybeTy
+    -- For now only support pattern matching on ListTy/MaybeTy
     -- Consider extending pattern matching to be on a type similar to an association ListTy
-    caseM_of_to_or_to_ : ∀ {A B n} {Γ : Context n}    
+    caseM_of_to_or_to_ : ∀ {A B} {Γ : Context}    
         -- thing ur matching on
         → Γ ⊢ MaybeTy A
         -- case Nothing
@@ -138,7 +123,7 @@ data _⊢_ : {n : ℕ} → Context n → Type → Set where
         -- Result
         → Γ ⊢ B
 
-    caseL_of_to_or_to_ : ∀ {A B n} {Γ : Context n}    
+    caseL_of_to_or_to_ : ∀ {A B} {Γ : Context}    
         -- thing ur matching on
         → Γ ⊢ ListTy A
         -- case []
@@ -151,39 +136,23 @@ data _⊢_ : {n : ℕ} → Context n → Type → Set where
         → Γ ⊢ B
 
     -- Pattern Terms
-    JustP :  ∀ {n} {Γ : Context n}
+    JustP :  ∀ {Γ : Context}
         → Γ ⊢ PatternTy JustPattern  
-    NothingP : ∀ {n} {Γ : Context n}
+    NothingP : ∀ {Γ : Context}
         → Γ ⊢ PatternTy NothingPattern
-    ::P : ∀ {n} {Γ : Context n}
+    ::P : ∀ {Γ : Context}
         → Γ ⊢ PatternTy ::Pattern
-    []P : ∀ {n} {Γ : Context n}
+    []P : ∀ {Γ : Context}
         → Γ ⊢ PatternTy []Pattern 
-    {-
-    
-    
-    caseE_of_to_or_to_ : ∀ {Γ C A B}    
-        -- thing ur matching on
-        → Γ ⊢ EitherTy A B
-        -- case Left
-        → Γ ⊢ EitherTy A B 
-        → Γ , A ⊢ C
-        -- case Right
-        → Γ ⊢ EitherTy A B
-        → Γ , B ⊢ C
-        -- Result
-        → Γ ⊢ C
-    -}
 
-length : {n : ℕ} → Context n → ℕ
+length : Context → ℕ
 length ∅        =  zero
 length (Γ , _)  =  suc (length Γ)
 
-lookup : {l : ℕ} {Γ : Context l} → {n : ℕ} → (p : n < length Γ) → Type
+lookup : {Γ : Context} → {n : ℕ} → (p : n < length Γ) → Type
 lookup {Γ = (_ , A)} {zero}    (s≤s z≤n)  =  A
 lookup {Γ = (Γ , _)} {(suc n)} (s≤s p)    =  lookup p
 
-{-
 count : ∀ {Γ} → {n : ℕ} → (p : n < length Γ) → Γ ∋ lookup p
 count {_ , _} {zero}    (s≤s z≤n)  =  Z
 count {Γ , _} {(suc n)} (s≤s p)    =  S (count p)
@@ -194,4 +163,3 @@ count {Γ , _} {(suc n)} (s≤s p)    =  S (count p)
     --------------------------------
   → Γ ⊢ lookup (toWitness n∈Γ)
 #_ n {n∈Γ}  =  var (count (toWitness n∈Γ))   
--}
