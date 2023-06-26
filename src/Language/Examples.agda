@@ -7,13 +7,13 @@ open import Semantics
 add1 : ∀ {Γ} → Γ ⊢ IntTy ⇒ IntTy
 add1 = ƛ ((Int ℤ.pos 1) + (# 0)) 
 
-matchJust : ∀ {Γ} → Γ ⊢ Maybe IntTy ⇒ IntTy
+matchJust : ∀ {Γ} → Γ ⊢ MaybeTy IntTy ⇒ IntTy
 matchJust = ƛ (caseM (# 0) of
     NothingP to Int (ℤ.pos 0)
     or
     JustP to (add1 · ((# 0))))
 
-matchList : ∀ {Γ} → Γ ⊢ List IntTy ⇒ IntTy
+matchList : ∀ {Γ} → Γ ⊢ ListTy IntTy ⇒ IntTy
 matchList = ƛ (caseL # 0 of 
     []P to Int ℤ.negsuc 0
     or

@@ -43,24 +43,24 @@ update∋PostRef (eo-elem ev)  Z = Z
 update∋PostRef (eo-elem ev)  (S x) = S (update∋PostRef ev x)
 update∋PostRef (eo-pad t ev) x = S (update∋PostRef ev x)
 
-refactorListJH : Γ ⊢ ty → (ev : Extend Γ Under MaybeTy→ListTy) → (constructRefContext ev)  ⊢ MaybeTy→ListTy ty
-refactorListJH (var x) ev = var (update∋PostRef ev x)
-refactorListJH (ƛ t) ev = ƛ (refactorListJH t (eo-elem ev))
-refactorListJH (t · t₁) ev = refactorListJH t ev · refactorListJH t₁ ev
-refactorListJH (Int x) ev = Int x
-refactorListJH (t + t₁) ev = refactorListJH t ev + refactorListJH t₁ ev
-refactorListJH (t - t₁) ev = refactorListJH t ev - refactorListJH t₁ ev
-refactorListJH (t * t₁) ev = refactorListJH t ev * refactorListJH t₁ ev
-refactorListJH Nothing ev = []
-refactorListJH (Just t) ev = refactorListJH t ev :: []
-refactorListJH [] ev = []
-refactorListJH (t :: t₁) ev = refactorListJH t ev :: refactorListJH t₁ ev
-refactorListJH (caseM m of nP to nC or jP to jC) ev = caseL refactorListJH m ev of refactorListJH nP ev to refactorListJH nC ev or refactorListJH jP ev to refactorListJH jC (eo-pad (ListTy _) (eo-elem ev))
-refactorListJH (caseL m of []Pat to []C or ::Pat to ::C) ev = caseL refactorListJH m ev of refactorListJH []Pat ev to refactorListJH []C ev or refactorListJH ::Pat ev to refactorListJH ::C (eo-elem (eo-elem ev))
-refactorListJH JustP ev = ::P
-refactorListJH NothingP ev = []P
-refactorListJH ::P ev = ::P
-refactorListJH []P ev = []P
+refactorListH : Γ ⊢ ty → (ev : Extend Γ Under MaybeTy→ListTy) → (constructRefContext ev)  ⊢ MaybeTy→ListTy ty
+refactorListH (var x) ev = var (update∋PostRef ev x)
+refactorListH (ƛ t) ev = ƛ (refactorListH t (eo-elem ev))
+refactorListH (t · t₁) ev = refactorListH t ev · refactorListH t₁ ev
+refactorListH (Int x) ev = Int x
+refactorListH (t + t₁) ev = refactorListH t ev + refactorListH t₁ ev
+refactorListH (t - t₁) ev = refactorListH t ev - refactorListH t₁ ev
+refactorListH (t * t₁) ev = refactorListH t ev * refactorListH t₁ ev
+refactorListH Nothing ev = []
+refactorListH (Just t) ev = refactorListH t ev :: []
+refactorListH [] ev = []
+refactorListH (t :: t₁) ev = refactorListH t ev :: refactorListH t₁ ev
+refactorListH (caseM m of nP to nC or jP to jC) ev = caseL refactorListH m ev of refactorListH nP ev to refactorListH nC ev or refactorListH jP ev to refactorListH jC (eo-pad (ListTy _) (eo-elem ev))
+refactorListH (caseL m of []Pat to []C or ::Pat to ::C) ev = caseL refactorListH m ev of refactorListH []Pat ev to refactorListH []C ev or refactorListH ::Pat ev to refactorListH ::C (eo-elem (eo-elem ev))
+refactorListH JustP ev = ::P
+refactorListH NothingP ev = []P
+refactorListH ::P ev = ::P
+refactorListH []P ev = []P
 
-refactorListJ : ∅ ⊢ ty → (ev : Extend ∅ Under MaybeTy→ListTy) → (constructRefContext ev) ⊢ MaybeTy→ListTy ty
-refactorListJ = refactorListJH
+refactorList : ∅ ⊢ ty → (ev : Extend ∅ Under MaybeTy→ListTy) → (constructRefContext ev) ⊢ MaybeTy→ListTy ty
+refactorList = refactorListH

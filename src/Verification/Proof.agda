@@ -2,7 +2,7 @@ module Proof where
 
 open import Typesystem
 open import Semantics
-open import Refactor using (refactorListJ ; refactorListJH  ; MaybeTy→ListTy ; constructRefContext ; Extend_Under_ ; eo-root ; eo-elem ; eo-pad ; update∋PostRef) 
+open import Refactor using (refactorList ; refactorListH  ; MaybeTy→ListTy ; constructRefContext ; Extend_Under_ ; eo-root ; eo-elem ; eo-pad ; update∋PostRef) 
 import Relation.Binary.PropositionalEquality as Eq
 open Eq using (_≡_; refl)  
 open import Data.Nat using (ℕ; zero; suc; _<_; _>_ ; _≤_; _≥_; z≤n; s≤s ; _>?_) renaming (_+_ to _+ₙ_)
@@ -47,41 +47,41 @@ i*zj≡i₁*zj₁ refl refl = refl
 ↓var↦ᵣ↓var (eo-elem ext) {γ₁ ,' v} {γ₂ ,' v₁} (S l) p = ↓var↦ᵣ↓var ext l (proj₁ p)
 ↓var↦ᵣ↓var (eo-pad x ext) {γ₁ ,' v} {γ₂ ,' v₁} l p = ↓var↦ᵣ↓var ext l p
 
-proofJh : ∀ {Γ ty v₁ v₂} → {e : Γ ⊢ ty}
+proofH : ∀ {Γ ty v₁ v₂} → {e : Γ ⊢ ty}
     → (ext : Extend Γ Under MaybeTy→ListTy)
     → {γ₁ : Env Γ} {γ₂ : Env (constructRefContext ext)}
     → γ₁ ⊢e e ↓ v₁
-    → γ₂ ⊢e refactorListJH e ext ↓ v₂
+    → γ₂ ⊢e refactorListH e ext ↓ v₂
     → ext , γ₁ ₑ↦ᵣ γ₂
     → v₁ v↦ᵣ v₂
-proofJh ext (↓var x) (↓var .(update∋PostRef ext x)) eq = ↓var↦ᵣ↓var ext x eq
-proofJh ext ↓ƛ ↓ƛ eq {argVₒ↦ᵣargV = argVₒ↦ᵣargV} ↓bₒ ↓bₙ = proofJh (eo-elem ext) ↓bₒ ↓bₙ ⟨ eq , argVₒ↦ᵣargV ⟩
-proofJh ext (↓· ↓ƛₒ ↓aₒ ↓rₒ) (↓· ↓ƛₙ ↓aₙ ↓rₙ) eq = (proofJh ext ↓ƛₒ ↓ƛₙ eq) {argVₒ↦ᵣargV = proofJh ext ↓aₒ ↓aₙ eq} ↓rₒ ↓rₙ
-proofJh ext ↓Int ↓Int eq = refl
-proofJh ext (↓+ lₒ rₒ) (↓+ lₙ rₙ) eq = i+zj≡i₁+zj₁ (proofJh ext lₒ lₙ eq) (proofJh ext rₒ rₙ eq)
-proofJh ext (↓- lₒ rₒ) (↓- lₙ rₙ) eq = i-zj≡i₁-zj₁ (proofJh ext lₒ lₙ eq) (proofJh ext rₒ rₙ eq)
-proofJh ext (↓* lₒ rₒ) (↓* lₙ rₙ) eq = i*zj≡i₁*zj₁ (proofJh ext lₒ lₙ eq) (proofJh ext rₒ rₙ eq)
-proofJh ext ↓Nothing ↓[] eq = tt
-proofJh ext (↓Just v) (↓:: h ↓[]) eq = ⟨ proofJh ext v h eq , refl ⟩ 
-proofJh ext ↓[] ↓[] eq = tt
-proofJh ext (↓:: hₒ tₒ) (↓:: hₙ tₙ) eq = ⟨ proofJh ext hₒ hₙ eq , proofJh ext tₒ tₙ eq ⟩
-proofJh ext (↓caseMJ mₒ jC) (↓caseL:: mₙ ::C) eq = proofJh (eo-pad (ListTy _) (eo-elem ext)) jC ::C ⟨ eq , proj₁ (proofJh ext mₒ mₙ eq) ⟩
-proofJh ext (↓caseMN d₁ d₂) (↓caseL[] d₃ d₄) eq = proofJh ext d₂ d₄ eq
-proofJh ext (↓caseL:: d₁ d₂) (↓caseL:: d₃ d₄) eq = proofJh (eo-elem (eo-elem ext)) d₂ d₄ ⟨ ⟨ eq , proj₁ p ⟩ , proj₂ p ⟩
+proofH ext (↓var x) (↓var .(update∋PostRef ext x)) eq = ↓var↦ᵣ↓var ext x eq
+proofH ext ↓ƛ ↓ƛ eq {argVₒ↦ᵣargV = argVₒ↦ᵣargV} ↓bₒ ↓bₙ = proofH (eo-elem ext) ↓bₒ ↓bₙ ⟨ eq , argVₒ↦ᵣargV ⟩
+proofH ext (↓· ↓ƛₒ ↓aₒ ↓rₒ) (↓· ↓ƛₙ ↓aₙ ↓rₙ) eq = (proofH ext ↓ƛₒ ↓ƛₙ eq) {argVₒ↦ᵣargV = proofH ext ↓aₒ ↓aₙ eq} ↓rₒ ↓rₙ
+proofH ext ↓Int ↓Int eq = refl
+proofH ext (↓+ lₒ rₒ) (↓+ lₙ rₙ) eq = i+zj≡i₁+zj₁ (proofH ext lₒ lₙ eq) (proofH ext rₒ rₙ eq)
+proofH ext (↓- lₒ rₒ) (↓- lₙ rₙ) eq = i-zj≡i₁-zj₁ (proofH ext lₒ lₙ eq) (proofH ext rₒ rₙ eq)
+proofH ext (↓* lₒ rₒ) (↓* lₙ rₙ) eq = i*zj≡i₁*zj₁ (proofH ext lₒ lₙ eq) (proofH ext rₒ rₙ eq)
+proofH ext ↓Nothing ↓[] eq = tt
+proofH ext (↓Just v) (↓:: h ↓[]) eq = ⟨ proofH ext v h eq , refl ⟩ 
+proofH ext ↓[] ↓[] eq = tt
+proofH ext (↓:: hₒ tₒ) (↓:: hₙ tₙ) eq = ⟨ proofH ext hₒ hₙ eq , proofH ext tₒ tₙ eq ⟩
+proofH ext (↓caseMJ mₒ jC) (↓caseL:: mₙ ::C) eq = proofH (eo-pad (ListTy _) (eo-elem ext)) jC ::C ⟨ eq , proj₁ (proofH ext mₒ mₙ eq) ⟩
+proofH ext (↓caseMN mₒ nC) (↓caseL[] mₙ []C) eq = proofH ext nC []C eq
+proofH ext (↓caseL:: mₒ ::Cₒ) (↓caseL:: mₙ ::Cₙ) eq = proofH (eo-elem (eo-elem ext)) ::Cₒ ::Cₙ ⟨ ⟨ eq , proj₁ hValₒv↦ᵣhValₙ×tValₒv↦ᵣtValₙ ⟩ , proj₂ hValₒv↦ᵣhValₙ×tValₒv↦ᵣtValₙ ⟩
     where
-        p = proofJh ext d₁ d₃ eq
-proofJh ext (↓caseL[] d₁ d₂) (↓caseL[] d₃ d₄) eq = proofJh ext d₂ d₄ eq
+        hValₒv↦ᵣhValₙ×tValₒv↦ᵣtValₙ = proofH ext mₒ mₙ eq
+proofH ext (↓caseL[] mₒ []Cₒ) (↓caseL[] mₙ []Cₙ) eq = proofH ext []Cₒ []Cₙ eq
 -- absurd cases
-proofJh ext (↓caseL[] d₁ d₂) (↓caseL:: d₃ d₄) eq = ⊥-elim (proofJh ext d₁ d₃ eq)
-proofJh ext (↓caseL:: d₁ d₂) (↓caseL[] d₃ d₄) eq = ⊥-elim (proofJh ext d₁ d₃ eq)
-proofJh ext (↓caseMN d₁ d₂) (↓caseL:: d₃ d₄) eq = ⊥-elim (proofJh ext d₁ d₃ eq)
-proofJh ext (↓caseMJ d₁ d₂) (↓caseL[] d₃ d₄) eq = ⊥-elim (proofJh ext d₁ d₃ eq)
+proofH ext (↓caseL[] mₒ _) (↓caseL:: mₙ _) eq = ⊥-elim (proofH ext mₒ mₙ eq)
+proofH ext (↓caseL:: mₒ _) (↓caseL[] mₙ _) eq = ⊥-elim (proofH ext mₒ mₙ eq)
+proofH ext (↓caseMN mₒ _) (↓caseL:: mₙ _) eq = ⊥-elim (proofH ext mₒ mₙ eq)
+proofH ext (↓caseMJ mₒ _) (↓caseL[] mₙ _) eq = ⊥-elim (proofH ext mₒ mₙ eq)
 
-proofJ : ∀ {ty v₁ v₂} → {e : ∅ ⊢ ty}
+proof : ∀ {ty v₁ v₂} → {e : ∅ ⊢ ty}
     → (ext : Extend ∅ Under MaybeTy→ListTy)
     → {γ₁ : Env ∅} {γ₂ : Env (constructRefContext ext)}
     → γ₁ ⊢e e ↓ v₁
-    → γ₂ ⊢e refactorListJH e ext ↓ v₂
+    → γ₂ ⊢e refactorListH e ext ↓ v₂
     → ext , γ₁ ₑ↦ᵣ γ₂
     → v₁ v↦ᵣ v₂
-proofJ  = proofJh
+proof  = proofH
