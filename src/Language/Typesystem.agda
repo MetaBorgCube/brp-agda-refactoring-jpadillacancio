@@ -1,6 +1,6 @@
 module Typesystem where
 
-open import Data.Integer using (ℤ) -- renaming (Int to ℤ)
+open import Data.Integer using (ℤ)
 open import Data.Nat using (ℕ; zero; suc; _<_; _≤?_; z≤n; s≤s)
 open import Relation.Nullary.Decidable using (True; toWitness)
 
@@ -22,10 +22,6 @@ infix  9 S_
 
 
 data Pattern : Set where
-    varPattern : Pattern
-    
-    IntPattern : Pattern
-    
     JustPattern : Pattern
     NothingPattern : Pattern
 
@@ -39,7 +35,6 @@ data Type : Set where
     _⇒_ : Type → Type → Type
     MaybeTy : Type → Type
     ListTy : Type → Type
-    -- EitherTy : Type → Type → Type  
     
     PatternTy : Pattern → Type
 
@@ -50,46 +45,52 @@ data Context : Set where
 data _∋_ : Context → Type → Set where
 
   Z : ∀ {A} {Γ : Context}
-      ---------  Γ , A ∋ A
     →  Γ , A ∋ A
 
   S_ : ∀ {A B} {Γ : Context}
+    -- Ensure there is a lookup judgement in submodule
     → Γ ∋ A
-      ---------  Γ , B ∋ A
     →  Γ , B ∋ A
 
 data _⊢_ : Context → Type → Set where
     var :  ∀ {A} {Γ : Context}
+        -- lookup judgement
         → Γ ∋ A
-        -----
         → Γ ⊢ A 
     
-    -- Add fixpoints or try to integrate them with lambdas
     ƛ  : ∀ {A B} {Γ : Context}
-        →  Γ , A ⊢ B
-        ---------
+        -- body of function
+        → Γ , A ⊢ B
         → Γ ⊢ A ⇒ B 
 
     _·_ : ∀ {A B} {Γ : Context}
+        -- function
         → Γ ⊢ A ⇒ B
+        -- argument
         → Γ ⊢ A
-        ---------
         → Γ ⊢ B
 
     -- Int and Int operations
     Int_ : ∀ {Γ : Context}
+        -- Agda Int value
         → ℤ
         → Γ ⊢ IntTy
     _+_ : ∀ {Γ : Context}
+        -- left term
         → Γ ⊢ IntTy
+        -- right term
         → Γ ⊢ IntTy
         → Γ ⊢ IntTy
     _-_ : ∀ {Γ : Context}
+        -- left term
         → Γ ⊢ IntTy
+        -- right term
         → Γ ⊢ IntTy
         → Γ ⊢ IntTy
     _*_ : ∀ {Γ : Context}
+        -- left term
         → Γ ⊢ IntTy
+        -- right term
         → Γ ⊢ IntTy
         → Γ ⊢ IntTy
 
@@ -98,6 +99,7 @@ data _⊢_ : Context → Type → Set where
     Nothing : ∀ {A} {Γ : Context}
         → Γ ⊢ MaybeTy A
     Just : ∀ {A} {Γ : Context}
+        -- Term that Just is wrapping
         → Γ ⊢ A
         → Γ ⊢ MaybeTy A
 
@@ -105,14 +107,16 @@ data _⊢_ : Context → Type → Set where
     [] :  ∀ {A} {Γ : Context}
         → Γ ⊢ ListTy A
     _::_ : ∀ {A} {Γ : Context}
+        -- head of list
         → Γ ⊢ A
+        -- tail of list
         → Γ ⊢ ListTy A
         → Γ ⊢ ListTy A
       
     -- For now only support pattern matching on ListTy/MaybeTy
     -- Consider extending pattern matching to be on a type similar to an association ListTy
     caseM_of_to_or_to_ : ∀ {A B} {Γ : Context}    
-        -- thing ur matching on
+        -- Term being matched on
         → Γ ⊢ MaybeTy A
         -- case Nothing
         → Γ ⊢ PatternTy NothingPattern
@@ -124,7 +128,7 @@ data _⊢_ : Context → Type → Set where
         → Γ ⊢ B
 
     caseL_of_to_or_to_ : ∀ {A B} {Γ : Context}    
-        -- thing ur matching on
+        -- Term being matched on
         → Γ ⊢ ListTy A
         -- case []
         → Γ ⊢ PatternTy []Pattern
@@ -145,6 +149,8 @@ data _⊢_ : Context → Type → Set where
     []P : ∀ {Γ : Context}
         → Γ ⊢ PatternTy []Pattern 
 
+
+-- helper functions to use # number instead of S (S (S ... Z)), directly from plfa
 length : Context → ℕ
 length ∅        =  zero
 length (Γ , _)  =  suc (length Γ)

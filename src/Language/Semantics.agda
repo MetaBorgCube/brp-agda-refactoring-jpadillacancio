@@ -18,13 +18,11 @@ private
 
 data Env : Context → Set  
 
--- Index this over types
 data Value : Type → Set where
     IntV : ℤ → Value IntTy
     
     -- MaybeTy
     NothingV : Value (MaybeTy ty)
-    -- Not sure if this should take a value or a Term
     JustV : Value ty → Value (MaybeTy ty)
 
     -- ListTy
@@ -41,7 +39,6 @@ private
     variable
         γ : Env Γ
 
--- Maybe cite jeoren? 
 v-lookup : ∀ {ty}  → Env Γ → Γ ∋ ty → Value ty
 v-lookup (γ ,' v) Z = v
 v-lookup (γ ,' v) (S l) = v-lookup γ l
@@ -87,15 +84,13 @@ data _⊢e_↓_ : Env Γ → (Γ ⊢ ty ) → Value ty → Set where
         -- Eval rhs
         → γ ⊢e r ↓ IntV j
         → γ ⊢e l * r ↓ IntV (i *z j) 
-    
-    -- Currently all these assume inner Type is always IntTy
 
     -- MaybeTy
     ↓Nothing : ∀  {A} 
         → γ ⊢e Nothing {A = A} ↓ NothingV
     
     ↓Just : ∀ {val}  {inner : Γ ⊢ IntTy}
-        -- thing that is wrapping it
+        -- thing that it is wrapping
         → γ ⊢e inner ↓ val 
         → γ ⊢e Just inner ↓ JustV val 
     
@@ -109,9 +104,9 @@ data _⊢e_↓_ : Env Γ → (Γ ⊢ ty ) → Value ty → Set where
         → γ ⊢e tail ↓ tailV
         → γ ⊢e head :: tail ↓ ConsV headV tailV 
     
-    -- For now only support pattern matching on list/EitherTy/MaybeTy
+    -- For now only support pattern matching on ListTy/MaybeTy
+    -- Pattern matching is hardcoded, first is a nothing/empty list, second is just/nonempty list
 
-    -- Only checking if term is a Just, not checking if it matches the value (if given)  
     ↓caseMJ : ∀ {A B} {val : Value A} {justClauseRes : Value B} {matchOn : Γ ⊢ MaybeTy A} {justClause : Γ , A ⊢ B} {notClause : Γ ⊢ B}
         -- Check if term being matched on is a Just
         → γ ⊢e matchOn ↓ JustV val
@@ -122,9 +117,9 @@ data _⊢e_↓_ : Env Γ → (Γ ⊢ ty ) → Value ty → Set where
             or
             JustP to justClause ↓ justClauseRes 
     ↓caseMN : ∀  { A B} {notClauseRes : Value B} {matchOn : Γ ⊢ MaybeTy A} {justClause : Γ , A ⊢ B} {notClause : Γ ⊢ B}
-        -- Check if term being matched on is a Just
+        -- Check if term being matched on is a Nothing
         → γ ⊢e matchOn ↓ NothingV
-        -- Get result of evaluating Just clause
+        -- Get result of evaluating Nothing clause
         → γ ⊢e notClause ↓ notClauseRes
         → γ ⊢e caseM matchOn of 
             NothingP to notClause
@@ -141,9 +136,9 @@ data _⊢e_↓_ : Env Γ → (Γ ⊢ ty ) → Value ty → Set where
             or
             ::P to ::Clause ↓ ::ClauseRes
     ↓caseL[] : ∀  { A B} {[]ClauseRes : Value B} {matchOn : Γ ⊢ ListTy A} {::Clause : Γ , A , ListTy A ⊢ B} {[]Clause : Γ ⊢ B}
-        -- Check if term being matched on is a (x::xs)
+        -- Check if term being matched on is a []
         → γ ⊢e matchOn ↓ NilV
-        -- Get result of evaluating :: clause
+        -- Get result of evaluating [] clause
         → γ ⊢e []Clause ↓ []ClauseRes
         → γ ⊢e caseL matchOn of 
             []P to []Clause
